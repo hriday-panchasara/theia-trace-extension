@@ -29,7 +29,7 @@ export class LoadingRenderer extends React.Component<ICellRendererParams> {
     }
 }
 
-export class CellRenderer extends React.Component<CellRendererProps> {    
+export class CellRenderer extends React.Component<CellRendererProps> {
     render(): JSX.Element {
         if (this.props.value === undefined) {
             return <React.Fragment><FontAwesomeIcon icon={faSpinner} /></React.Fragment>;
