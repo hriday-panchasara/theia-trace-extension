@@ -29,7 +29,8 @@ describe('Table output component tests', () => {
                 naviBackgroundColor: 0xf4f7fb,
                 chartBackgroundColor: 0xf4f7fb,
                 cursorColor: 0x259fd8,
-                lineColor: 0x757575
+                lineColor: 0x757575,
+                yAxisWidth: 30
             },
             tspClient: new TspClient('testURL'),
             traceId: '0',
