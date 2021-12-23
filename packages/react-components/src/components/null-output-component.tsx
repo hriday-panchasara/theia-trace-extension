@@ -11,6 +11,7 @@ export class NullOutputComponent extends AbstractOutputComponent<NullOutputProps
     constructor(props: NullOutputProps) {
         super(props);
     }
+
     renderMainArea(): React.ReactNode {
         const treeWidth = this.props.widthWPBugWorkaround - this.getHandleWidth() - this.props.style.chartWidth;
         return <React.Fragment>
@@ -23,5 +24,9 @@ export class NullOutputComponent extends AbstractOutputComponent<NullOutputProps
                 {'Not implemented yet!'}
             </div>
         </React.Fragment>;
+    }
+
+    setFocus(): void {
+        return;
     }
   }

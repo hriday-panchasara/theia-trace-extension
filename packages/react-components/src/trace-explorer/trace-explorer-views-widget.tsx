@@ -126,9 +126,7 @@ export class ReactAvailableViewsWidget extends React.Component<ReactAvailableVie
         const outputs = this.state.availableOutputDescriptors;
 
         if (outputs && this._selectedExperiment) {
-            signalManager().fireExperimentSelectedSignal(this._selectedExperiment);
             signalManager().fireOutputAddedSignal(new OutputAddedSignalPayload(outputs[index], this._selectedExperiment));
-
         }
     }
 
@@ -176,11 +174,11 @@ export class ReactAvailableViewsWidget extends React.Component<ReactAvailableVie
         /**
          * Remove outputs of type DATA_TREE since the view is not supported in theia-traceviewer
          */
-        let outputs = outputDescriptors.filter(value => (value.type !== 'DATA_TREE'));
-        /**
-         * Remove outputs of id "scatter" until the tooltip is implemented
-         */
-        outputs = outputs.filter(value => !value.id.includes('scatter'));
-        return outputs;
+         let outputs = outputDescriptors.filter(value => (value.type !== 'DATA_TREE'));
+         /**
+          * Remove outputs of id "scatter" until the tooltip is implemented
+          */
+         outputs = outputs.filter(value => !value.id.includes('scatter'));
+         return outputs;
     }
 }

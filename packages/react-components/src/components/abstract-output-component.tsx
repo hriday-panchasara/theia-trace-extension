@@ -62,7 +62,8 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
         const localStyle = Object.assign({}, this.props.style);
         localStyle.width = this.props.widthWPBugWorkaround;
         return <div style={localStyle}
-            id={this.props.outputDescriptor.id}
+            id={this.props.traceId+this.props.outputDescriptor.id}
+            tabIndex={-1}
             className={'output-container ' + this.props.className}
             onMouseUp={this.props.onMouseUp}
             onMouseDown={this.props.onMouseDown}
@@ -70,7 +71,7 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
             onTouchEnd={this.props.onTouchEnd}
             data-tip=''
             data-for="tooltip-component">
-            <div className='widget-handle' style={{ width: this.HANDLE_WIDTH, height: this.props.style.height }}>
+            <div id={this.props.traceId+this.props.outputDescriptor.id+'handle'} className='widget-handle' style={{ width: this.HANDLE_WIDTH, height: this.props.style.height }}>
                 {this.renderTitleBar()}
             </div>
             <div className='main-output-container' ref={this.mainAreaContainer}
@@ -87,7 +88,7 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
             <button className='remove-component-button' onClick={this.closeComponent}>
                 <FontAwesomeIcon icon={faTimes} />
             </button>
-            <div className='title-bar-label' title={outputName}>
+            <div className='title-bar-label' title={outputName} onClick={() => this.setFocus()}>
                 {outputName}
             </div>
         </React.Fragment>;
@@ -107,6 +108,8 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
     public getHandleWidth(): number {
         return this.HANDLE_WIDTH;
     }
+
+    abstract setFocus(): void;
 
     abstract renderMainArea(): React.ReactNode;
 
