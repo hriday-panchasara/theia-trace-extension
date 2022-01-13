@@ -1,11 +1,11 @@
 import { injectable, inject } from 'inversify';
 import { CommandRegistry, CommandContribution, MessageService } from '@theia/core';
-import { WidgetOpenerOptions, WidgetOpenHandler } from '@theia/core/lib/browser';
+import { WidgetOpenerOptions, WidgetOpenHandler, KeybindingContribution, KeybindingRegistry } from '@theia/core/lib/browser';
 import URI from '@theia/core/lib/common/uri';
 import { TraceViewerWidget, TraceViewerWidgetOptions } from './trace-viewer';
 import { FileDialogService, OpenFileDialogProps } from '@theia/filesystem/lib/browser';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
-import { OpenTraceCommand, StartServerCommand, StopServerCommand, TraceViewerCommand } from './trace-viewer-commands';
+import { OpenTraceCommand, StartServerCommand, StopServerCommand, TraceViewerCommand, KeyboardShortcutsCommand } from './trace-viewer-commands';
 import { PortBusy, TraceServerConfigService } from '../../common/trace-server-config';
 import { PreferenceService } from '@theia/core/lib/browser';
 import { TRACE_PATH, TRACE_PORT } from '../trace-server-preference';
@@ -13,13 +13,14 @@ import { TspClient } from 'tsp-typescript-client/lib/protocol/tsp-client';
 import { TspClientProvider } from '../tsp-client-provider-impl';
 import { TspClientResponse } from 'tsp-typescript-client/lib/protocol/tsp-client-response';
 import { HealthStatus } from 'tsp-typescript-client/lib/models/health';
+import { ChartShortcutsDialog } from './../trace-explorer/trace-explorer-sub-widgets/charts-cheatsheet-component';
 
 interface TraceViewerWidgetOpenerOptions extends WidgetOpenerOptions {
     traceUUID: string;
 }
 
 @injectable()
-export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget> implements CommandContribution {
+export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget> implements CommandContribution, KeybindingContribution {
 
     private tspClient: TspClient;
 
@@ -38,6 +39,7 @@ export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget
     @inject(PreferenceService) protected readonly preferenceService: PreferenceService;
     @inject(TraceServerConfigService) protected readonly traceServerConfigService: TraceServerConfigService;
     @inject(MessageService) protected readonly messageService: MessageService;
+    @inject(ChartShortcutsDialog) protected readonly chartShortcuts: ChartShortcutsDialog;
 
     readonly id = TraceViewerWidget.ID;
     readonly label = 'Trace Viewer';
@@ -55,40 +57,6 @@ export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget
             traceURI: uri.path.toString(),
             traceUUID: options?.traceUUID
         };
-    }
-
-    protected async launchTraceServer(): Promise<void> {
-        try {
-            const healthResponse = await this.tspClient.checkHealth();
-            if ((healthResponse as TspClientResponse<HealthStatus>).getModel()?.status === 'UP') {
-                this.openDialog();
-            }
-        } catch (e) {
-            this.messageService.showProgress({
-                text: ''
-            }).then(async progress => {
-                progress.report({ message: 'Launching trace server... ', work: { done: 10, total: 100 } });
-                try {
-                    const resolve = await this.traceServerConfigService.startTraceServer(this.path, this.port);
-                    if (resolve === 'success') {
-                        progress.report({ message: `Trace server started on port: ${this.port}.`, work: { done: 100, total: 100 } });
-                        progress.cancel();
-                        this.openDialog();
-                    }
-                }
-                catch (err) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    if (PortBusy.is(err as any)) {
-                        this.messageService.error(
-                            `Error opening serial port ${this.port}. (Port busy)`);
-                    } else {
-                        this.messageService.error(
-                            'Failed to start the trace server: no such file or directory. Please make sure that the path is correct in Trace Viewer settings and retry');
-                    }
-                    progress.cancel();
-                }
-            });
-        }
     }
 
     public async openDialog(): Promise<void> {
@@ -145,11 +113,16 @@ export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget
 
     }
 
+    registerKeybindings(keybindings: KeybindingRegistry): void {
+        keybindings.registerKeybinding({
+            keybinding: 'ctrlcmd+f1',
+            command: KeyboardShortcutsCommand.id,
+        });
+    }
+
     registerCommands(registry: CommandRegistry): void {
         registry.registerCommand(OpenTraceCommand, {
-            execute: async () => {
-                await this.launchTraceServer();
-            }
+            execute: () => { this.openDialog(); }
         });
 
         registry.registerCommand(TraceViewerCommand, {
@@ -186,6 +159,11 @@ export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget
             }
         });
 
+        registry.registerCommand(KeyboardShortcutsCommand, {
+            execute: () => {
+                this.chartShortcuts.open();
+            }
+        });
     }
 
     canHandle(_uri: URI): number {
