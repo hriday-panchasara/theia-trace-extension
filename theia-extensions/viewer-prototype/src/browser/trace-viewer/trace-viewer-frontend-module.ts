@@ -20,6 +20,7 @@ import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar
 import { TraceViewerToolbarContribution } from './trace-viewer-toolbar-contribution';
 import { LazyTspClientFactory } from 'traceviewer-base/lib/lazy-tsp-client';
 import { BackendFileService, backendFileServicePath } from '../../common/backend-file-service';
+import { TraceServerConnectionStatusService } from '../trace-server-status';
 
 export default new ContainerModule(bind => {
     bind(TraceServerUrlProviderImpl).toSelf().inSingletonScope();
@@ -33,6 +34,8 @@ export default new ContainerModule(bind => {
     bind(FrontendApplicationContribution).toService(TraceViewerToolbarContribution);
     bind(TabBarToolbarContribution).toService(TraceViewerToolbarContribution);
     bind(CommandContribution).toService(TraceViewerToolbarContribution);
+    bind(TraceServerConnectionStatusService).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(TraceServerConnectionStatusService);
 
     bind(TraceViewerWidget).toSelf();
     bind<WidgetFactory>(WidgetFactory).toDynamicValue(context => ({

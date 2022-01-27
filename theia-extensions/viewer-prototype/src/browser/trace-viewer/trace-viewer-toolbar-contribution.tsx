@@ -10,6 +10,7 @@ import { TspClientProvider } from '../tsp-client-provider-impl';
 import { ContextMenuRenderer } from '@theia/core/lib/browser';
 import { TraceExplorerOpenedTracesWidget } from '../trace-explorer/trace-explorer-sub-widgets/theia-trace-explorer-opened-traces-widget';
 import { OpenTraceCommand } from './trace-viewer-commands';
+import { TraceExplorerWidget } from '../trace-explorer/trace-explorer-widget';
 
 @injectable()
 export class TraceViewerToolbarContribution implements TabBarToolbarContribution, CommandContribution {
@@ -93,6 +94,17 @@ export class TraceViewerToolbarContribution implements TabBarToolbarContribution
             execute: async () => {
                 await registry.executeCommand(OpenTraceCommand.id);
             }
+        });
+        registry.registerCommand(
+            TraceViewerToolbarCommands.SERVER_CHECK, {
+            isVisible: (w: Widget) => {
+                if (w instanceof TraceExplorerWidget) {
+                    return true;
+                }
+                return false;
+            },
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            execute: () => {}
         });
     }
 
@@ -218,6 +230,12 @@ export class TraceViewerToolbarContribution implements TabBarToolbarContribution
             command: TraceViewerToolbarCommands.OPEN_TRACE.id,
             tooltip: TraceViewerToolbarCommands.OPEN_TRACE.label,
             priority: 6,
+        });
+        registry.registerItem({
+            id: TraceViewerToolbarCommands.SERVER_CHECK.id,
+            command: TraceViewerToolbarCommands.SERVER_CHECK.id,
+            tooltip: TraceViewerToolbarCommands.SERVER_CHECK.label,
+            priority: 7,
         });
     }
 }
