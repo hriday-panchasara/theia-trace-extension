@@ -26,6 +26,8 @@ import { TooltipComponent } from './tooltip-component';
 import { TooltipXYComponent } from './tooltip-xy-component';
 import { BIMath } from 'timeline-chart/lib/bigint-utils';
 import { DataTreeOutputComponent } from './datatree-output-component';
+import Split from 'react-split'
+import SplitPane from 'react-split-pane';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -318,6 +320,13 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         }
     }
 
+    private gutterFunc(index: any, direction: any): HTMLElement {
+        console.log('index: '+index);
+        const gutter = document.createElement('div')
+        gutter.className = `gutter gutter-${direction}`
+        return gutter;
+    }
+
     private renderOutputs() {
         const layouts = this.generateGridLayout();
         const outputs = this.props.outputs;
@@ -334,66 +343,72 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
             }
         }
 
+        const collapsedIndex = undefined;
+
         return <React.Fragment>
             {
                 // Syntax to use ReactGridLayout with Custom Components, while passing resized dimensions to children:
                 // https://github.com/STRML/react-grid-layout/issues/299#issuecomment-524959229
             }
+            <SplitPane
+                split="horizontal"
+            >
             {timeScaleCharts.length &&
-                <>
-                <div style={{ marginLeft: this.state.style.handleWidth + this.state.style.sashOffset + this.state.style.sashWidth }}>
-                    <TimeAxisComponent unitController={this.unitController} style={this.state.style}
-                        addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
+                <div className='outputs-grid-layout'>
+                    <div style={{ marginLeft: this.state.style.handleWidth + this.state.style.sashOffset + this.state.style.sashWidth }}>
+                        <TimeAxisComponent unitController={this.unitController} style={this.state.style}
+                            addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
+                    </div>
+                    <ResponsiveGridLayout className='outputs-grid-layout' margin={[0, 5]} isResizable={true} isDraggable={true} resizeHandles={['se', 's', 'sw']}
+                    layouts={{ lg: layouts }} cols={{ lg: 1 }} breakpoints={{ lg: 1200 }} rowHeight={this.DEFAULT_COMPONENT_ROWHEIGHT} draggableHandle={'.title-bar-label'}
+                    >
+                    {timeScaleCharts.map(output => {
+                        const responseType = output.type;
+                        const outputProps: AbstractOutputProps = {
+                            tspClient: this.props.tspClient,
+                            tooltipComponent: this.tooltipComponent.current,
+                            tooltipXYComponent: this.tooltipXYComponent.current,
+                            traceId: this.state.experiment.UUID,
+                            outputDescriptor: output,
+                            markerCategories: this.props.markerCategoriesMap.get(output.id),
+                            markerSetId: this.props.markerSetId,
+                            range: this.state.currentRange,
+                            nbEvents: this.state.experiment.nbEvents,
+                            viewRange: this.state.currentViewRange,
+                            selectionRange: this.state.currentTimeSelection,
+                            style: this.state.style,
+                            onOutputRemove: this.props.onOutputRemove,
+                            unitController: this.unitController,
+                            widthWPBugWorkaround: this.state.style.width,
+                            backgroundTheme: this.state.backgroundTheme,
+                            setSashOffset: this.setSashOffset
+                        };
+                        switch (responseType) {
+                            case 'TIME_GRAPH':
+                                return <TimegraphOutputComponent key={output.id} {...outputProps}
+                                    addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />;
+                            case 'TREE_TIME_XY':
+                                return <XYOutputComponent key={output.id} {...outputProps} />;
+                            case 'TABLE':
+                                return <TableOutputComponent key={output.id} {...outputProps} />;
+                            case 'DATA_TREE':
+                                return <DataTreeOutputComponent key={output.id} {...outputProps} />;
+                            default:
+                                return <NullOutputComponent key={output.id} {...outputProps} />;
+                        }
+                    })}
+                    </ResponsiveGridLayout>
+                    <div style={{ marginLeft: this.state.style.handleWidth + this.state.style.sashOffset + this.state.style.sashWidth }}>
+                        <TimeNavigatorComponent unitController={this.unitController} style={this.state.style}
+                            addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
+                    </div>
                 </div>
-                <ResponsiveGridLayout className='outputs-grid-layout' margin={[0, 5]} isResizable={true} isDraggable={true} resizeHandles={['se', 's', 'sw']}
-                layouts={{ lg: layouts }} cols={{ lg: 1 }} breakpoints={{ lg: 1200 }} rowHeight={this.DEFAULT_COMPONENT_ROWHEIGHT} draggableHandle={'.title-bar-label'}
-                style={{ paddingRight: this.SCROLLBAR_PADDING }}>
-                {timeScaleCharts.map(output => {
-                    const responseType = output.type;
-                    const outputProps: AbstractOutputProps = {
-                        tspClient: this.props.tspClient,
-                        tooltipComponent: this.tooltipComponent.current,
-                        tooltipXYComponent: this.tooltipXYComponent.current,
-                        traceId: this.state.experiment.UUID,
-                        outputDescriptor: output,
-                        markerCategories: this.props.markerCategoriesMap.get(output.id),
-                        markerSetId: this.props.markerSetId,
-                        range: this.state.currentRange,
-                        nbEvents: this.state.experiment.nbEvents,
-                        viewRange: this.state.currentViewRange,
-                        selectionRange: this.state.currentTimeSelection,
-                        style: this.state.style,
-                        onOutputRemove: this.props.onOutputRemove,
-                        unitController: this.unitController,
-                        widthWPBugWorkaround: this.state.style.width,
-                        backgroundTheme: this.state.backgroundTheme,
-                        setSashOffset: this.setSashOffset
-                    };
-                    switch (responseType) {
-                        case 'TIME_GRAPH':
-                            return <TimegraphOutputComponent key={output.id} {...outputProps}
-                                addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />;
-                        case 'TREE_TIME_XY':
-                            return <XYOutputComponent key={output.id} {...outputProps} />;
-                        case 'TABLE':
-                            return <TableOutputComponent key={output.id} {...outputProps} />;
-                        case 'DATA_TREE':
-                            return <DataTreeOutputComponent key={output.id} {...outputProps} />;
-                        default:
-                            return <NullOutputComponent key={output.id} {...outputProps} />;
-                    }
-                })}
-                </ResponsiveGridLayout>
-                <div style={{ marginLeft: this.state.style.handleWidth + this.state.style.sashOffset + this.state.style.sashWidth }}>
-                    <TimeNavigatorComponent unitController={this.unitController} style={this.state.style}
-                        addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
-                </div>
-                </>
             }
             {nonTimeScaleCharts.length &&
+            <div className='outputs-grid-layout'>
                 <ResponsiveGridLayout className='outputs-grid-layout' margin={[0, 5]} isResizable={true} isDraggable={true} resizeHandles={['se', 's', 'sw']}
                 layouts={{ lg: layouts }} cols={{ lg: 1 }} breakpoints={{ lg: 1200 }} rowHeight={this.DEFAULT_COMPONENT_ROWHEIGHT} draggableHandle={'.title-bar-label'}
-                style={{ paddingRight: this.SCROLLBAR_PADDING }}>
+                >
                 {nonTimeScaleCharts.map(output => {
                     const responseType = output.type;
                     const outputProps: AbstractOutputProps = {
@@ -430,7 +445,10 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                     }
                 })}
                 </ResponsiveGridLayout>
+                </div>
+
             }
+            </SplitPane>
         </React.Fragment>;
     }
 
