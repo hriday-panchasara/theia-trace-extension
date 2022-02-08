@@ -333,31 +333,31 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
             }
         }
 
-        if (timeScaleCharts.length === 0 && nonTimeScaleCharts.length !== 0) {
-            return this.renderNonTimeScaleContainer(nonTimeScaleCharts);
-        } else if (timeScaleCharts.length !==0 && nonTimeScaleCharts.length === 0) {
-            return this.renderTimeScaleContainer(timeScaleCharts);
-        } else if (outputs[0].type === 'TIME_GRAPH' || outputs[0].type === 'TREE_TIME_XY') {
-            return <Split
-                direction="vertical"
-                className="flex"
-                style={{height: '100%'}}
-                sizes={[50, 50]}
-                >
-                    {this.renderTimeScaleContainer(timeScaleCharts)}
-                    {this.renderNonTimeScaleContainer(nonTimeScaleCharts)}
-                </Split>;
-        } else {
-            return <Split
-                direction="vertical"
-                className="flex"
-                style={{height: '100%'}}
-                sizes={[50, 50]}
-                >
-                    {this.renderNonTimeScaleContainer(nonTimeScaleCharts)}
-                    {this.renderTimeScaleContainer(timeScaleCharts)}
-                </Split>;
+        let sizesArray = [50,50];
+        let minSizes = [30,30];
+        if (timeScaleCharts.length === 0) {
+            sizesArray = [0,100];
+            minSizes = [0,0];
+        } else if (nonTimeScaleCharts.length === 0 ) {
+            sizesArray = [100,0];
+            minSizes = [0,0];
         }
+
+        return <Split
+            direction="vertical"
+            className="flex"
+            style={{height: '100%'}}
+            sizes={sizesArray}
+            minSize={minSizes}
+            >
+                {
+                    this.renderTimeScaleContainer(timeScaleCharts)
+                }
+                {
+                    this.renderNonTimeScaleContainer(nonTimeScaleCharts)
+                }
+            </Split>;
+
     }
 
     private renderPlaceHolder() {
@@ -369,13 +369,17 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     }
 
     private renderNonTimeScaleContainer(charts: Array<OutputDescriptor>) {
-        return <div style={{overflowY: 'scroll', overflowX: 'hidden'}}>
-            {this.renderCharts(charts)}
-        </div>;
+        if (charts.length > 0) {
+            return <div style={{overflowY: 'scroll', overflowX: 'hidden'}}>
+                {this.renderCharts(charts)}
+            </div>;
+        }
+        return <div></div>;
     }
 
     private renderTimeScaleContainer(charts: Array<OutputDescriptor>) {
-        return <div style={{overflowY: 'scroll', overflowX: 'hidden'}}>
+        if (charts.length > 0) {
+            return <div style={{overflowY: 'scroll', overflowX: 'hidden'}}>
             <div style={{ position: 'sticky', zIndex: 100, top: 0, marginLeft: this.state.style.handleWidth + this.state.style.sashOffset + this.state.style.sashWidth }}>
                 <TimeAxisComponent unitController={this.unitController} style={this.state.style}
                     addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
@@ -385,7 +389,9 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 <TimeNavigatorComponent unitController={this.unitController} style={this.state.style}
                     addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
             </div>
-        </div>;
+            </div>;
+        }
+        return <div></div>;
     }
 
     private renderCharts(charts: Array<OutputDescriptor>) {
