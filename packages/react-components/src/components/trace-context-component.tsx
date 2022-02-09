@@ -26,6 +26,7 @@ import { TooltipComponent } from './tooltip-component';
 import { TooltipXYComponent } from './tooltip-xy-component';
 import { BIMath } from 'timeline-chart/lib/bigint-utils';
 import { DataTreeOutputComponent } from './datatree-output-component';
+import Split from 'react-split';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -318,24 +319,77 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     }
 
     private renderOutputs() {
-        const layouts = this.generateGridLayout();
         const outputs = this.props.outputs;
-        const showTimeScale = outputs.filter(output => output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY').length > 0;
-        const chartWidth = Math.max(0, this.state.style.width - this.state.style.chartOffset);
-        return <React.Fragment>
-            {showTimeScale &&
-                <div style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING }}>
-                    <TimeAxisComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
+        const timeScaleCharts: Array<OutputDescriptor> = [];
+        const nonTimeScaleCharts: Array<OutputDescriptor> = [];
+        for (const output of outputs) {
+            if (output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY') {
+                timeScaleCharts.push(output);
+            } else {
+                nonTimeScaleCharts.push(output);
+            }
+        }
+
+        let sizesArray = [50,50];
+        let minSizes = [30,30];
+        if (timeScaleCharts.length === 0) {
+            sizesArray = [0,100];
+            minSizes = [0,0];
+        } else if (nonTimeScaleCharts.length === 0 ) {
+            sizesArray = [100,0];
+            minSizes = [0,0];
+        }
+
+        return <Split
+            direction="vertical"
+            className="flex"
+            style={{height: '100%'}}
+            sizes={sizesArray}
+            minSize={minSizes}
+            >
+                {
+                    this.renderTimeScaleContainer(timeScaleCharts)
+                }
+                {
+                    this.renderNonTimeScaleContainer(nonTimeScaleCharts)
+                }
+            </Split>;
+    }
+
+    private renderNonTimeScaleContainer(charts: Array<OutputDescriptor>) {
+        if (charts.length > 0) {
+            return <div style={{overflowY: 'scroll', overflowX: 'hidden'}}>
+                {this.renderCharts(charts)}
+            </div>;
+        }
+        return <div></div>;
+    }
+
+    private renderTimeScaleContainer(charts: Array<OutputDescriptor>) {
+        if (charts.length > 0) {
+            const chartWidth = Math.max(0, this.state.style.width - this.state.style.chartOffset);
+            return <div style={{overflowY: 'scroll', overflowX: 'hidden'}}>
+                <div style={{ position: 'sticky', zIndex: 100, top: 0, marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING }}>
+                    <TimeAxisComponent unitController={this.unitController}  style={{ ...this.state.style, width: chartWidth }}
                         addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
                 </div>
-            }
-            {
-                // Syntax to use ReactGridLayout with Custom Components, while passing resized dimensions to children:
-                // https://github.com/STRML/react-grid-layout/issues/299#issuecomment-524959229
-            }
-            <ResponsiveGridLayout className='outputs-grid-layout' margin={[0, 5]} isResizable={true} isDraggable={true} resizeHandles={['se', 's', 'sw']}
-                layouts={{ lg: layouts }} cols={{ lg: 1 }} breakpoints={{ lg: 1200 }} rowHeight={this.DEFAULT_COMPONENT_ROWHEIGHT} draggableHandle={'.title-bar-label'}>
-                {outputs.map(output => {
+                {this.renderCharts(charts)}
+                <div style={{ position: 'sticky', zIndex: 100, bottom: 0, marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING }}>
+                    <TimeNavigatorComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
+                        addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
+                </div>
+            </div>;
+        }
+        return <div></div>;
+    }
+
+    private renderCharts(charts: Array<OutputDescriptor>) {
+        const layouts = this.generateGridLayout();
+
+        return  <ResponsiveGridLayout margin={[0, 5]} isResizable={true} isDraggable={true} resizeHandles={['se', 's', 'sw']}
+                    layouts={{ lg: layouts }} cols={{ lg: 1 }} breakpoints={{ lg: 1200 }} rowHeight={this.DEFAULT_COMPONENT_ROWHEIGHT} draggableHandle={'.title-bar-label'}
+                >
+                {charts.map(output => {
                     const responseType = output.type;
                     const outputProps: AbstractOutputProps = {
                         tspClient: this.props.tspClient,
@@ -370,14 +424,11 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                             return <NullOutputComponent key={output.id} {...outputProps} />;
                     }
                 })}
-            </ResponsiveGridLayout>
-            {showTimeScale &&
-                <div style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING }}>
-                    <TimeNavigatorComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
-                        addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
-                </div>
-            }
-        </React.Fragment>;
+                </ResponsiveGridLayout>;
+                {
+                    // Syntax to use ReactGridLayout with Custom Components, while passing resized dimensions to children:
+                    // https://github.com/STRML/react-grid-layout/issues/299#issuecomment-524959229
+                }
     }
 
     private renderPlaceHolder() {
