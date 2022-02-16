@@ -331,12 +331,17 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     }
 
     private onLayoutChange(currentLayout: Layout[]): void {
+
+        if(currentLayout === this._storedLayout) {
+            return;
+        }
+
         console.log('on layout change called');
         const curLayoutCopy = cloneDeep(currentLayout);
-        const storedLayoutCopy = cloneDeep(this._storedLayout);
         curLayoutCopy.sort((a,b) => (a.y > b.y) ? 1 : -1);
+        const storedLayoutCopy = cloneDeep(this._storedLayout);
         
-        this._storedLayout = curLayoutCopy;
+        this._storedLayout = currentLayout;
         this.forceUpdate();
 
         for (let i = 0; i < curLayoutCopy.length -1; i++) {
@@ -362,8 +367,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         const showTimeScale = outputs.filter(output => output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY').length > 0;
         const chartWidth = Math.max(0, this.state.style.width - this.state.style.chartOffset);
 
-        if ((showTimeScale && this._storedLayout.length !== this.props.outputs.length) 
-            || (!showTimeScale && this._storedLayout.length !== this.props.outputs.length)){
+        if (this._storedLayout.length !== this.props.outputs.length+1) {
+            // output added or removed
             this.generateGridLayout();
         }
 
@@ -381,7 +386,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                         addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
                 </div>
             }
-            <ResponsiveGridLayout className='outputs-grid-layout' margin={[0, 5]} isResizable={true} isDraggable={true} resizeHandles={['se', 's', 'sw']}
+            <ResponsiveGridLayout className='outputs-grid-layout' margin={[0, 5]} isResizable={true} isDraggable={true}
                 onLayoutChange={this.onLayoutChange} layouts={{ lg: this._storedLayout }} cols={{ lg: 1 }} breakpoints={{ lg: 1200 }} rowHeight={this.DEFAULT_COMPONENT_ROWHEIGHT} draggableHandle={'.title-bar-label'}>
                 {outputs.map(output => {
                     const responseType = output.type;
@@ -418,12 +423,10 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                             return <NullOutputComponent key={output.id} {...outputProps} />;
                     }
                 })}
-                {/* {showTimeScale &&
-                    <div key='timeNavigatorComponent' style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING }}>
-                        <TimeNavigatorComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
-                            addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
-                    </div>
-                } */}
+                <div key='timeNavigatorComponent' style={{ display: showTimeScale ? 'block' : 'none', marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING }}>
+                    <TimeNavigatorComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
+                        addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
+                </div>
             </ResponsiveGridLayout>
         </React.Fragment>;
     }
@@ -458,13 +461,14 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                     existingNonTimeScaleLayouts.push(chartX);
                 }
             } else {
-                const itemLayout = {
+                const itemLayout: Layout = {
                     i: output.id,
                     x: 0,
                     y: 1,
                     w: 1,
-                    h: this.DEFAULT_COMPONENT_HEIGHT
+                    h: this.DEFAULT_COMPONENT_HEIGHT,
                 };
+                itemLayout.resizeHandles = ['se', 'sw', 's'];
                 if (output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY') {
                     newTimeScaleLayouts.push(itemLayout);
                 } else {
@@ -478,6 +482,17 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
 
         existingTimeScaleLayouts = existingTimeScaleLayouts.concat(newTimeScaleLayouts);
         existingNonTimeScaleLayouts = existingNonTimeScaleLayouts.concat(newNonTimeScaleLayouts);
+
+        existingTimeScaleLayouts.push({
+            i: 'timeNavigatorComponent',
+            x: 0,
+            y: 1,
+            w: 1,
+            h: 1,
+            isDraggable: false,
+            isResizable: false,
+            resizeHandles: []
+        });
 
         this._storedLayout = existingTimeScaleLayouts.concat(existingNonTimeScaleLayouts);
 
