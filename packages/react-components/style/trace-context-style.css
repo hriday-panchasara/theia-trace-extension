@@ -21,7 +21,6 @@
 }
 
 .outputs-grid-layout {
-    flex-grow: 1;
     overflow-y: scroll;
     overflow-x: hidden;
 }
