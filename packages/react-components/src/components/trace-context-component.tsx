@@ -26,7 +26,7 @@ import { TooltipComponent } from './tooltip-component';
 import { TooltipXYComponent } from './tooltip-xy-component';
 import { BIMath } from 'timeline-chart/lib/bigint-utils';
 import { DataTreeOutputComponent } from './datatree-output-component';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, isEqual } from 'lodash';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -72,9 +72,6 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private tooltipXYComponent: React.RefObject<TooltipXYComponent>;
     private traceContextContainer: React.RefObject<HTMLDivElement>;
     private _storedLayout: Layout[] = [];
-    private _timeScaleCharts: Array<OutputDescriptor> = [];
-    private _nonTimeScaleCharts: Array<OutputDescriptor> = [];
-    private _outputsMap: Map<String, String> = new Map();
 
     protected widgetResizeHandlers: (() => void)[] = [];
     protected readonly addWidgetResizeHandler = (h: () => void): void => {
@@ -325,40 +322,50 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         }
     }
 
-    static getDerivedStateFromProps(props: TraceContextProps, prevState: TraceContextState) {
-        // if (state)
-        return null;
-    }
-
     private onLayoutChange(currentLayout: Layout[]): void {
+        console.log('on layout change called');
 
-        if(currentLayout === this._storedLayout) {
+        if (isEqual(this._storedLayout, currentLayout)) {
             return;
         }
 
-        console.log('on layout change called');
         const curLayoutCopy = cloneDeep(currentLayout);
         curLayoutCopy.sort((a,b) => (a.y > b.y) ? 1 : -1);
         const storedLayoutCopy = cloneDeep(this._storedLayout);
-        
-        this._storedLayout = currentLayout;
+
+        this._storedLayout = curLayoutCopy;
         this.forceUpdate();
+        let invalidLayout = false;
 
         for (let i = 0; i < curLayoutCopy.length -1; i++) {
-            const first = this.props.outputs.find(obj => {
-                return obj.id === curLayoutCopy[i].i;
-            });
-            const second = this.props.outputs.find(obj => {
-                return obj.id === curLayoutCopy[i+1].i;
-            })
-            
+            const first = this.props.outputs.find(obj => obj.id === curLayoutCopy[i].i);
+            const second = this.props.outputs.find(obj => obj.id === curLayoutCopy[i+1].i);
+
+            // timeline chart can't be below timeNavigator
+            if (second && (second.type === 'TIME_GRAPH' || second.type === 'TREE_TIME_XY')
+                && (curLayoutCopy[i].i === 'timeNavigatorComponent')) {
+                    invalidLayout = true;
+                    break;
+            }
+
+            // non-timeline chart can't be above timeNavigator
+            if (first && (first.type !== 'TIME_GRAPH' && first.type !== 'TREE_TIME_XY')
+                && (curLayoutCopy[i+1].i === 'timeNavigatorComponent')) {
+                    invalidLayout = true;
+                    break;
+            }
+
+            // non-timeline chart can't be above timeline chart
             if (first && second && (first.type !== 'TIME_GRAPH' && first.type !== 'TREE_TIME_XY')
                 && (second.type === 'TIME_GRAPH' || second.type === 'TREE_TIME_XY')) {
-                    console.log('do not allow');
-                    this._storedLayout = storedLayoutCopy;
-                    this.forceUpdate();
-                    return;
+                    invalidLayout = true;
+                    break;
             }
+        }
+
+        if (invalidLayout) {
+            this._storedLayout = storedLayoutCopy;
+            this.forceUpdate();
         }
     }
 
@@ -373,7 +380,6 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         }
 
         console.log('render called');
-        
 
         return <React.Fragment>
             {
@@ -387,7 +393,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 </div>
             }
             <ResponsiveGridLayout className='outputs-grid-layout' margin={[0, 5]} isResizable={true} isDraggable={true}
-                onLayoutChange={this.onLayoutChange} layouts={{ lg: this._storedLayout }} cols={{ lg: 1 }} breakpoints={{ lg: 1200 }} rowHeight={this.DEFAULT_COMPONENT_ROWHEIGHT} draggableHandle={'.title-bar-label'}>
+                onLayoutChange={this.onLayoutChange} layouts={{ lg: this._storedLayout }} cols={{ lg: 1 }} breakpoints={{ lg: 1200 }}
+                rowHeight={this.DEFAULT_COMPONENT_ROWHEIGHT} draggableHandle={'.title-bar-label'}>
                 {outputs.map(output => {
                     const responseType = output.type;
                     const outputProps: AbstractOutputProps = {
@@ -423,7 +430,9 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                             return <NullOutputComponent key={output.id} {...outputProps} />;
                     }
                 })}
-                <div key='timeNavigatorComponent' style={{ display: showTimeScale ? 'block' : 'none', marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING }}>
+                {/* always rendering timeNavigator. Conditional rendering returns 'null' in false case, leading to RGL error */}
+                <div key='timeNavigatorComponent' style={{ display: showTimeScale ? 'block' : 'none', marginLeft: this.state.style.chartOffset,
+                    marginRight: this.SCROLLBAR_PADDING }}>
                     <TimeNavigatorComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
                         addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
                 </div>
@@ -432,6 +441,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     }
 
     private renderPlaceHolder() {
+        this._storedLayout = [];
         return <div className='no-output-placeholder'>
             {'Trace loaded successfully.'}
             <br />
@@ -440,25 +450,18 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     }
 
     private generateGridLayout(): void {
-        console.log('generate grid called');
-        // get previous layout
-        // sort in order of 'y'
-        // if array.length > 0 split into 2 based on condition
-        //      iterate over array and split when non-Timeline encountered
         let existingTimeScaleLayouts: Array<Layout> = [];
         let existingNonTimeScaleLayouts: Array<Layout> = [];
         const newTimeScaleLayouts: Array<Layout> = [];
         const newNonTimeScaleLayouts: Array<Layout> = [];
-        
+
         for (const output of this.props.outputs) {
-            const chartX = this._storedLayout.find(layout => {
-                return layout.i === output.id;
-            });
-            if (chartX) {
+            const curChart = this._storedLayout.find(layout => layout.i === output.id);
+            if (curChart) {
                 if (output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY') {
-                    existingTimeScaleLayouts.push(chartX);
+                    existingTimeScaleLayouts.push(curChart);
                 } else {
-                    existingNonTimeScaleLayouts.push(chartX);
+                    existingNonTimeScaleLayouts.push(curChart);
                 }
             } else {
                 const itemLayout: Layout = {
@@ -496,6 +499,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
 
         this._storedLayout = existingTimeScaleLayouts.concat(existingNonTimeScaleLayouts);
 
+        // At times on layout change RGL changes y values of existing charts from 1,2,3 to 10,20,30
         this._storedLayout.forEach((output, index) => {
             output.y = index;
         });
