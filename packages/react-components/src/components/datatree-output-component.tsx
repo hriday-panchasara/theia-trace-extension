@@ -8,6 +8,8 @@ import { EntryTree } from './utils/filter-tree/entry-tree';
 import { getAllExpandedNodeIds } from './utils/filter-tree/utils';
 import { TreeNode } from './utils/filter-tree/tree-node';
 import ColumnHeader from './utils/filter-tree/column-header';
+import { cloneDeep } from 'lodash';
+import debounce from 'lodash.debounce';
 
 type DataTreeOutputProps = AbstractOutputProps & {
 };
@@ -15,6 +17,7 @@ type DataTreeOutputProps = AbstractOutputProps & {
 type DataTreeOuputState = AbstractOutputState & {
     selectedSeriesId: number[];
     xyTree: Entry[];
+    selectedTree: Entry[];
     collapsedNodes: number[];
     orderedNodes: number[];
     columns: ColumnHeader[];
@@ -23,12 +26,15 @@ type DataTreeOuputState = AbstractOutputState & {
 export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOutputProps, DataTreeOuputState> {
     treeRef: React.RefObject<HTMLDivElement> = React.createRef();
 
+    private _debouncedFetchSelectionData = debounce(() => this.fetchSelectionData(), 500);
+
     constructor(props: AbstractOutputProps) {
         super(props);
         this.state = {
             outputStatus: ResponseStatus.RUNNING,
             selectedSeriesId: [],
             xyTree: [],
+            selectedTree: [],
             collapsedNodes: [],
             orderedNodes: [],
             columns: [{title: 'Name', sortable: true}],
@@ -80,14 +86,15 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
     renderTree(): React.ReactNode | undefined {
         this.onToggleCollapse = this.onToggleCollapse.bind(this);
         this.onOrderChange = this.onOrderChange.bind(this);
-        return this.state.xyTree.length
+        const totalEntries = this.state.xyTree.concat(this.state.selectedTree);
+        return totalEntries.length
             ?   <div
                     tabIndex={0}
                     id={this.props.traceId + this.props.outputDescriptor.id + 'focusContainer'}
                     className='scrollable' style={{ height: this.props.style.height, width: this.getMainAreaWidth() }}
                 >
                 <EntryTree
-                    entries={this.state.xyTree}
+                    entries={totalEntries}
                     showCheckboxes={false}
                     collapsedNodes={this.state.collapsedNodes}
                     onToggleCollapse={this.onToggleCollapse}
@@ -153,5 +160,64 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
     componentWillUnmount(): void {
         // fix Warning: Can't perform a React state update on an unmounted component
         this.setState = (_state, _callback) => undefined;
+    }
+
+    protected async fetchSelectionData(): Promise<void> {
+        if (this.props.selectionRange) {
+            const origXYTree = cloneDeep(this.state.xyTree);
+            origXYTree.sort((a,b)=> (a.id > b.id) ? 1 : -1);
+
+            const parameters = QueryHelper.timeQuery([this.props.selectionRange.getStart(), this.props.selectionRange.getEnd()]);
+            // TODO: use the data tree endpoint instead of the xy tree endpoint
+            const tspClientResponse = await this.props.tspClient.fetchXYTree(this.props.traceId, this.props.outputDescriptor.id, parameters);
+            const treeResponse = tspClientResponse.getModel();
+            if (tspClientResponse.isOk() && treeResponse) {
+                if (treeResponse.model) {
+                    let newEntries = treeResponse.model.entries;
+                    newEntries = newEntries.filter(obj => obj.parentId !== -1);
+
+                    for (let i=0;i<newEntries.length;i++) {
+                        let prevTargetId = -1;
+                        let curTargetId = -1;
+
+                        if (newEntries[i].labels.length > 0 && newEntries[i].labels.includes('Total')) {
+                            const index = newEntries[i].labels.indexOf('Total');
+                            newEntries[i].labels[index] = 'Selection';
+                            prevTargetId = newEntries[i].id;
+                            curTargetId = newEntries[i].id + origXYTree[origXYTree.length-1].id;
+                            newEntries[i].id = curTargetId;
+
+                            // selection root found
+                            for (let j=0;j<newEntries.length;j++) {
+                                if (newEntries[j].parentId === prevTargetId) {
+                                    newEntries[j].parentId = curTargetId;
+                                    newEntries[j].id = newEntries[j].id + origXYTree[origXYTree.length-1].id;
+                                }
+                            }
+                        }
+                    }
+
+                    const testTree = cloneDeep(this.state.xyTree);
+
+                    this.setState({
+                        xyTree: testTree,
+                        selectedTree: newEntries
+                    });
+                }
+            }
+        }
+    }
+
+    async componentDidUpdate(prevProps: DataTreeOutputProps): Promise<void> {
+        if (this.props.selectionRange && this.props.selectionRange !== prevProps.selectionRange) {
+            if (Number(this.props.selectionRange.getDuration()) > 0) {
+                this._debouncedFetchSelectionData();
+            }
+            else {
+                this.setState({
+                    selectedTree: []
+                });
+            }
+        }
     }
 }
