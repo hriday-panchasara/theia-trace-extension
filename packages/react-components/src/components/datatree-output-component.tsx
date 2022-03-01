@@ -167,7 +167,12 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
             const origXYTree = cloneDeep(this.state.xyTree);
             origXYTree.sort((a,b)=> (a.id > b.id) ? 1 : -1);
 
-            const parameters = QueryHelper.timeQuery([this.props.selectionRange.getStart(), this.props.selectionRange.getEnd()]);
+            let parameters: any;
+            if (Number(this.props.selectionRange.getStart()) < Number(this.props.selectionRange.getEnd())) {
+                parameters = QueryHelper.timeQuery([this.props.selectionRange.getStart(), this.props.selectionRange.getEnd()]);
+            } else {
+                parameters = QueryHelper.timeQuery([this.props.selectionRange.getEnd(), this.props.selectionRange.getStart()]);
+            }
             // TODO: use the data tree endpoint instead of the xy tree endpoint
             const tspClientResponse = await this.props.tspClient.fetchXYTree(this.props.traceId, this.props.outputDescriptor.id, parameters);
             const treeResponse = tspClientResponse.getModel();
@@ -210,7 +215,8 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
 
     async componentDidUpdate(prevProps: DataTreeOutputProps): Promise<void> {
         if (this.props.selectionRange && this.props.selectionRange !== prevProps.selectionRange) {
-            if (Number(this.props.selectionRange.getDuration()) > 0) {
+            console.log(Number(this.props.selectionRange.getDuration()));
+            if (Math.abs(Number(this.props.selectionRange.getDuration())) > 0) {
                 this._debouncedFetchSelectionData();
             }
             else {
