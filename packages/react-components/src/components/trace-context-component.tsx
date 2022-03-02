@@ -268,7 +268,6 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
 
     private handleTimeSelectionChange(range?: TimelineChart.TimeGraphRange) {
         if (range) {
-            console.log('time selection change');
             const t1 = range.start + this.state.timeOffset;
             const t2 = range.end + this.state.timeOffset;
 
@@ -276,7 +275,6 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 text: `T1: ${t1} T2: ${t2} Delta: ${t2 - t1}`,
                 category: Messages.MessageCategory.TRACE_CONTEXT
             });
-
             this.setState(prevState => ({
                 currentTimeSelection: new TimeRange(range.start, range.end, prevState.timeOffset)
             }));

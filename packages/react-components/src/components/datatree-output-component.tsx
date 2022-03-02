@@ -17,7 +17,6 @@ type DataTreeOutputProps = AbstractOutputProps & {
 type DataTreeOuputState = AbstractOutputState & {
     selectedSeriesId: number[];
     xyTree: Entry[];
-    selectedTree: Entry[];
     collapsedNodes: number[];
     orderedNodes: number[];
     columns: ColumnHeader[];
@@ -27,6 +26,7 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
     treeRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     private _debouncedFetchSelectionData = debounce(() => this.fetchSelectionData(), 500);
+    private _totalTree: Entry[] = [];
 
     constructor(props: AbstractOutputProps) {
         super(props);
@@ -34,7 +34,6 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
             outputStatus: ResponseStatus.RUNNING,
             selectedSeriesId: [],
             xyTree: [],
-            selectedTree: [],
             collapsedNodes: [],
             orderedNodes: [],
             columns: [{title: 'Name', sortable: true}],
@@ -66,6 +65,7 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
                     xyTree: treeResponse.model.entries,
                     columns
                 });
+                this._totalTree = cloneDeep(this.state.xyTree);
             } else {
                 this.setState({
                     outputStatus: treeResponse.status
@@ -86,15 +86,14 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
     renderTree(): React.ReactNode | undefined {
         this.onToggleCollapse = this.onToggleCollapse.bind(this);
         this.onOrderChange = this.onOrderChange.bind(this);
-        const totalEntries = this.state.xyTree.concat(this.state.selectedTree);
-        return totalEntries.length
+        return this.state.xyTree.length
             ?   <div
                     tabIndex={0}
                     id={this.props.traceId + this.props.outputDescriptor.id + 'focusContainer'}
                     className='scrollable' style={{ height: this.props.style.height, width: this.getMainAreaWidth() }}
                 >
                 <EntryTree
-                    entries={totalEntries}
+                    entries={this.state.xyTree}
                     showCheckboxes={false}
                     collapsedNodes={this.state.collapsedNodes}
                     onToggleCollapse={this.onToggleCollapse}
@@ -167,46 +166,23 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
             const origXYTree = cloneDeep(this.state.xyTree);
             origXYTree.sort((a,b)=> (a.id > b.id) ? 1 : -1);
 
-            let parameters: any;
+            let payload: any;
             if (Number(this.props.selectionRange.getStart()) < Number(this.props.selectionRange.getEnd())) {
-                parameters = QueryHelper.timeQuery([this.props.selectionRange.getStart(), this.props.selectionRange.getEnd()]);
+                payload = QueryHelper.timeQuery([this.props.selectionRange.getStart(), this.props.selectionRange.getEnd()]);
             } else {
-                parameters = QueryHelper.timeQuery([this.props.selectionRange.getEnd(), this.props.selectionRange.getStart()]);
+                payload = QueryHelper.timeQuery([this.props.selectionRange.getEnd(), this.props.selectionRange.getStart()]);
             }
+
+            payload.parameters.isFiltered = true;
+
             // TODO: use the data tree endpoint instead of the xy tree endpoint
-            const tspClientResponse = await this.props.tspClient.fetchXYTree(this.props.traceId, this.props.outputDescriptor.id, parameters);
+            const tspClientResponse = await this.props.tspClient.fetchXYTree(this.props.traceId, this.props.outputDescriptor.id, payload);
             const treeResponse = tspClientResponse.getModel();
             if (tspClientResponse.isOk() && treeResponse) {
                 if (treeResponse.model) {
-                    let newEntries = treeResponse.model.entries;
-                    newEntries = newEntries.filter(obj => obj.parentId !== -1);
-
-                    for (let i=0;i<newEntries.length;i++) {
-                        let prevTargetId = -1;
-                        let curTargetId = -1;
-
-                        if (newEntries[i].labels.length > 0 && newEntries[i].labels.includes('Total')) {
-                            const index = newEntries[i].labels.indexOf('Total');
-                            newEntries[i].labels[index] = 'Selection';
-                            prevTargetId = newEntries[i].id;
-                            curTargetId = newEntries[i].id + origXYTree[origXYTree.length-1].id;
-                            newEntries[i].id = curTargetId;
-
-                            // selection root found
-                            for (let j=0;j<newEntries.length;j++) {
-                                if (newEntries[j].parentId === prevTargetId) {
-                                    newEntries[j].parentId = curTargetId;
-                                    newEntries[j].id = newEntries[j].id + origXYTree[origXYTree.length-1].id;
-                                }
-                            }
-                        }
-                    }
-
-                    const testTree = cloneDeep(this.state.xyTree);
-
                     this.setState({
-                        xyTree: testTree,
-                        selectedTree: newEntries
+                        outputStatus: treeResponse.status,
+                        xyTree: treeResponse.model.entries,
                     });
                 }
             }
@@ -215,13 +191,12 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
 
     async componentDidUpdate(prevProps: DataTreeOutputProps): Promise<void> {
         if (this.props.selectionRange && this.props.selectionRange !== prevProps.selectionRange) {
-            console.log(Number(this.props.selectionRange.getDuration()));
             if (Math.abs(Number(this.props.selectionRange.getDuration())) > 0) {
                 this._debouncedFetchSelectionData();
             }
             else {
                 this.setState({
-                    selectedTree: []
+                    xyTree: this._totalTree
                 });
             }
         }
