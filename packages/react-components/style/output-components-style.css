@@ -81,9 +81,8 @@
     display: flex;
 }
 
-.xy-main {
-    width: 100%;
-    display: flex;
+.greyed-output {
+    opacity: 0.5;
 }
 
 #main {

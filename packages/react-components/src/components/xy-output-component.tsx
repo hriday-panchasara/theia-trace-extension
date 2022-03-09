@@ -160,6 +160,7 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
     }
 
     componentDidUpdate(prevProps: AbstractOutputProps, prevState: XYOuputState): void {
+        console.log('xy output component did update called');
         const viewRangeChanged = this.props.viewRange !== prevProps.viewRange;
         const checkedSeriesChanged = this.state.checkedSeries !== prevState.checkedSeries;
         const collapsedNodesChanged = this.state.collapsedNodes !== prevState.collapsedNodes;
@@ -178,6 +179,7 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
                 };
                 this.divRef.current.addEventListener('wheel', this.preventDefaultHandler);
             }
+            console.log('chartRef.current.chartInstance.render() being called');
             this.chartRef.current.chartInstance.render();
         }
     }
@@ -829,6 +831,10 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
     }
 
     private async updateXY() {
+        if (document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'focusContainer')) {
+            document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'focusContainer')!.classList.add('greyed-output');
+        }
+        console.log('xy updateXY called');
         let start = BigInt(0);
         let end = BigInt(0);
         const viewRange = this.props.viewRange;
@@ -848,6 +854,9 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
             } else {
                 this.buildScatterData(xyDataResponse.model.series);
             }
+        }
+        if (document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'focusContainer')) {
+            document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'focusContainer')!.classList.remove('greyed-output');
         }
     }
 
