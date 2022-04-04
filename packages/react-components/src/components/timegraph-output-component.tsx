@@ -476,6 +476,10 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
         }
     }
 
+    shareOutput(): void {
+        return;
+    }
+
     protected getVerticalScrollbar(): JSX.Element {
         return <ReactTimeGraphContainer
             id='vscroll'

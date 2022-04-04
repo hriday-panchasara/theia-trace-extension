@@ -2,7 +2,7 @@ import * as React from 'react';
 import { OutputDescriptor } from 'tsp-typescript-client/lib/models/output-descriptor';
 import { TspClient } from 'tsp-typescript-client/lib/protocol/tsp-client';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faShareSquare, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { TimeGraphUnitController } from 'timeline-chart/lib/time-graph-unit-controller';
 import { TimeRange } from 'traceviewer-base/lib/utils/time-range';
 import { OutputComponentStyle } from './utils/output-component-style';
@@ -92,6 +92,9 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
             </button>
             <div className='title-bar-label' title={outputName} onClick={() => this.setFocus()}>
                 {outputName}
+                <button className='remove-component-button' onClick={() => this.shareOutput()} style={{ marginTop: '5px' }}>
+                    <FontAwesomeIcon icon={faShareSquare} />
+                </button>
                 <i id={this.props.traceId + this.props.outputDescriptor.id + 'handleSpinner'} className='fa fa-refresh fa-spin'
                     style={{ marginTop: '5px', visibility: 'hidden'}} />
             </div>
@@ -122,6 +125,8 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
         return this.renderMainArea();
     }
     abstract setFocus(): void;
+
+    abstract shareOutput(): void;
 
     abstract renderMainArea(): React.ReactNode;
 

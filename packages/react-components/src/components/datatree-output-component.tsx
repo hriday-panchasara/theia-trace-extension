@@ -126,6 +126,10 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
         }
     }
 
+    shareOutput(): void {
+        return;
+    }
+
     private onToggleCollapse(id: number, nodes: TreeNode[]) {
         let newList = [...this.state.collapsedNodes];
 

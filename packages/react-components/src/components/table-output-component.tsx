@@ -143,6 +143,10 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         }
     }
 
+    shareOutput(): void {
+        return;
+    }
+
     componentWillUnmount(): void {
         // TODO: replace with removing the handler from unit controller
         // See timeline-chart issue #98

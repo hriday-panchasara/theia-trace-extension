@@ -395,6 +395,10 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
         }
     }
 
+    shareOutput(): void {
+        return;
+    }
+
     private afterChartDraw(chart: Chart) {
         const ctx = chart.ctx;
         if (ctx) {

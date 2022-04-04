@@ -19,6 +19,8 @@ import { scaleLinear } from 'd3-scale';
 import { axisLeft } from 'd3-axis';
 import { select } from 'd3-selection';
 import { throttle } from 'lodash';
+import JsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 type XYOuputState = AbstractOutputState & {
     selectedSeriesId: number[];
@@ -397,6 +399,27 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
             document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'focusContainer')?.focus();
         } else {
             document.getElementById(this.props.traceId + this.props.outputDescriptor.id)?.focus();
+        }
+    }
+
+    shareOutput(): void {
+        // const report = new JsPDF('landscape','pt','b0');
+        if (document.getElementById(this.props.traceId + this.props.outputDescriptor.id)) {
+            html2canvas(document.getElementById(this.props.traceId + this.props.outputDescriptor.id)!)
+            .then((canvas) => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new JsPDF();
+
+                // The code makes sure that the aspect ratio is preserved and that the image fits the width of the PDF.
+                const imgProperties = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight =
+                (imgProperties.height * pdfWidth) / imgProperties.width;
+
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save('report.pdf');
+              })
+
         }
     }
 
