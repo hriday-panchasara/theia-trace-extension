@@ -404,19 +404,26 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
 
     shareOutput(): void {
         // const report = new JsPDF('landscape','pt','b0');
-        if (document.getElementById(this.props.traceId + this.props.outputDescriptor.id)) {
-            html2canvas(document.getElementById(this.props.traceId + this.props.outputDescriptor.id)!)
+        if (document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'main-output-container')) {
+            html2canvas(document.getElementById(this.props.traceId + this.props.outputDescriptor.id  + 'main-output-container')!)
             .then((canvas) => {
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new JsPDF();
+                
+                pdf.text('Trace Name: ' + 'wget-first-call', 10, 10);
+                pdf.text('Output Name: ' + this.props.outputDescriptor.name, 10, 20);
+                pdf.text('View Range: ' + this.props.unitController.viewRange.start + ' - ' + this.props.unitController.viewRange.end, 10, 30);
+                pdf.text('Selection Range: ' + this.props.unitController.selectionRange?.start + ' - ' + this.props.unitController.selectionRange?.end, 10, 40);
 
                 // The code makes sure that the aspect ratio is preserved and that the image fits the width of the PDF.
                 const imgProperties = pdf.getImageProperties(imgData);
-                const pdfWidth = pdf.internal.pageSize.getWidth();
+                console.log('pdf width: ' + pdf.internal.pageSize.getWidth());
+                console.log('img width: ' + canvas.width);
+                const pdfWidth = 0.9 * pdf.internal.pageSize.getWidth();
                 const pdfHeight =
                 (imgProperties.height * pdfWidth) / imgProperties.width;
 
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.addImage(imgData, 'PNG', 10, 50, pdfWidth, pdfHeight);
                 pdf.save('report.pdf');
               })
 

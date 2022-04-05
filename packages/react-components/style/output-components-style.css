@@ -39,6 +39,14 @@
     justify-self: center;
     color: var(--theia-ui-font-color0)
 }
+.share-output-button {
+    border: none;
+    background: none;
+    cursor: pointer !important;
+    margin-top: 10px;
+    transform: rotate(180deg);
+    color: var(--theia-ui-font-color0)
+}
 
 .main-output-container {
     display: flex;

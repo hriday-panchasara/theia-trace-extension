@@ -76,7 +76,7 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
             >
                 {this.renderTitleBar()}
             </div>
-            <div className='main-output-container' ref={this.mainOutputContainer}
+            <div id={this.props.traceId + this.props.outputDescriptor.id + 'main-output-container'} className='main-output-container' ref={this.mainOutputContainer}
                 style={{ width: this.props.outputWidth - this.getHandleWidth(), height: this.props.style.height }}>
                 {this.renderMainOutputContainer()}
             </div>
@@ -92,7 +92,7 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
             </button>
             <div className='title-bar-label' title={outputName} onClick={() => this.setFocus()}>
                 {outputName}
-                <button className='remove-component-button' onClick={() => this.shareOutput()} style={{ marginTop: '5px' }}>
+                <button title="Export as PDF" className='share-output-button' onClick={() => this.shareOutput()}>
                     <FontAwesomeIcon icon={faShareSquare} />
                 </button>
                 <i id={this.props.traceId + this.props.outputDescriptor.id + 'handleSpinner'} className='fa fa-refresh fa-spin'
