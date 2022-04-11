@@ -38,4 +38,8 @@ export class NullOutputComponent extends AbstractOutputComponent<NullOutputProps
     shareOutput(): void {
         return;
     }
+
+    getDropDownOptions(): Array<string> {
+        return [];
+    }
   }

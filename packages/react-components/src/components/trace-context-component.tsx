@@ -27,6 +27,8 @@ import { TooltipXYComponent } from './tooltip-xy-component';
 import { BIMath } from 'timeline-chart/lib/bigint-utils';
 import { DataTreeOutputComponent } from './datatree-output-component';
 import { cloneDeep } from 'lodash';
+import JsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -72,6 +74,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private traceContextContainer: React.RefObject<HTMLDivElement>;
     private _storedTimescaleLayout: Layout[] = [];
     private _storedNonTimescaleLayout: Layout[] = [];
+    private _timeAxisRef: React.RefObject<TimeAxisComponent>;
+    private _timeNavigatorRef: React.RefObject<TimeNavigatorComponent>;
 
     protected widgetResizeHandlers: (() => void)[] = [];
     protected readonly addWidgetResizeHandler = (h: () => void): void => {
@@ -88,6 +92,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private onBackgroundThemeChange = (theme: string): void => this.doHandleBackgroundThemeChange(theme);
     private onUpdateZoom = (hasZoomedIn: boolean) => this.doHandleUpdateZoomSignal(hasZoomedIn);
     private onResetZoom = () => this.doHandleResetZoomSignal();
+    private onShareOutput = (payload: { outputID: string, isTimeScale: boolean }) => this.doHandleShareOutputSignal(payload);
 
     constructor(props: TraceContextProps) {
         super(props);
@@ -130,6 +135,10 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
             const nanos = zeroPad(theNumber % BigInt(1000));
             return seconds + '.' + millis + ' ' + micros + ' ' + nanos;
         };
+
+        this._timeAxisRef = React.createRef();
+        this._timeNavigatorRef = React.createRef();
+
         this.unitController.onSelectionRangeChange(range => { this.handleTimeSelectionChange(range); });
         this.unitController.onViewRangeChanged(viewRangeParam => { this.handleViewRangeChange(viewRangeParam); });
         this.tooltipComponent = React.createRef();
@@ -210,12 +219,14 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         signalManager().on(Signals.THEME_CHANGED, this.onBackgroundThemeChange);
         signalManager().on(Signals.UPDATE_ZOOM, this.onUpdateZoom);
         signalManager().on(Signals.RESET_ZOOM, this.onResetZoom);
+        signalManager().on(Signals.SHARE_OUTPUT, this.onShareOutput);
     }
 
     private unsubscribeToEvents() {
         signalManager().off(Signals.THEME_CHANGED, this.onBackgroundThemeChange);
         signalManager().off(Signals.UPDATE_ZOOM, this.onUpdateZoom);
         signalManager().off(Signals.RESET_ZOOM, this.onResetZoom);
+        signalManager().off(Signals.SHARE_OUTPUT, this.onShareOutput);
     }
 
     async componentDidUpdate(prevProps: TraceContextProps): Promise<void> {
@@ -235,10 +246,54 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
 
     private doHandleUpdateZoomSignal(hasZoomedIn: boolean) {
         this.zoomButton(hasZoomedIn);
+        if (this._timeAxisRef.current) {
+            const test = this._timeAxisRef.current.exportTimeAxis();
+            console.log(test);
+            console.log('done');
+        } 
+        if (this._timeNavigatorRef.current) {
+            const test = this._timeNavigatorRef.current.exportTimeAxis();
+            console.log(test);
+            console.log('done');
+        }
     }
 
     private doHandleResetZoomSignal() {
         this.unitController.viewRange = { start: BigInt(0), end: this.unitController.absoluteRange };
+    }
+
+    private async doHandleShareOutputSignal(payload: { outputID: string, isTimeScale: boolean }) {
+        const pdf = new JsPDF('l','px','a4');
+        pdf.text('Trace Name: ' + 'wget-first-call', 10, 30);
+        pdf.text('Output Name: ' + 'CPU Usage', 10, 50);
+
+        if (payload.isTimeScale && this._timeAxisRef.current) {
+            const timeAxisData = this._timeAxisRef.current.exportTimeAxis();
+            if (timeAxisData) {
+                this.addImageToPdf(timeAxisData, pdf, 10, 70);
+            }
+        }
+
+        if (payload.isTimeScale && this._timeNavigatorRef.current) {
+            const timeNavigatorData = this._timeNavigatorRef.current.exportTimeAxis();
+            if (timeNavigatorData) {
+                this.addImageToPdf(timeNavigatorData, pdf, 10, 90);
+            }
+        }
+
+        const canvas = await html2canvas(document.getElementById(payload.outputID)!);
+        const imgData = canvas.toDataURL('image/png');
+        this.addImageToPdf(imgData, pdf, 10, 110);
+
+        pdf.save('report.pdf');
+    }
+
+    private addImageToPdf(imgData: string, pdf: JsPDF, x: number, y:number) {
+        const imgProperties = pdf.getImageProperties(imgData);
+        const pdfWidth = 0.9 * pdf.internal.pageSize.getWidth();
+        // reframes the height in ratio to the adjusted width:
+        const pdfHeight = (imgProperties.height * pdfWidth) / imgProperties.width;
+        pdf.addImage(imgData, 'PNG', x, y, pdfWidth, pdfHeight);
     }
 
     private zoomButton(zoomIn: boolean) {
@@ -353,8 +408,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 // Syntax to use ReactGridLayout with Custom Components, while passing resized dimensions to children:
                 // https://github.com/STRML/react-grid-layout/issues/299#issuecomment-524959229
             }
-            <div style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING, visibility: timeScaleCharts.length ? 'visible' : 'hidden' }}>
-                <TimeAxisComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
+            <div id='time-axis-container-parent' style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING, visibility: timeScaleCharts.length ? 'visible' : 'hidden' }}>
+                <TimeAxisComponent ref={this._timeAxisRef} unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
                     addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
              </div>
             <div className='outputs-grid-layout'>
@@ -362,7 +417,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 <>
                     {this.renderGridLayout(timeScaleCharts, this._storedTimescaleLayout)}
                     <div className='sticky-div' style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING }}>
-                        <TimeNavigatorComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
+                        <TimeNavigatorComponent ref={this._timeNavigatorRef} unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
                             addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
                     </div>
                 </>

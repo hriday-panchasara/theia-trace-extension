@@ -399,6 +399,10 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
         return;
     }
 
+    getDropDownOptions(): Array<string> {
+        return [];
+    }
+
     private afterChartDraw(chart: Chart) {
         const ctx = chart.ctx;
         if (ctx) {

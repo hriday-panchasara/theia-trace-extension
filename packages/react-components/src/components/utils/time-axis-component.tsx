@@ -17,9 +17,16 @@ interface TimeAxisProps {
 }
 
 export class TimeAxisComponent extends React.Component<TimeAxisProps> {
+    private _timeGraphContainerRef: React.RefObject<ReactTimeGraphContainer>;
+    constructor(props: TimeAxisProps) {
+        super(props);
+        this._timeGraphContainerRef = React.createRef();
+    }
+
     render(): JSX.Element {
         return <ReactTimeGraphContainer
             id='timegraph-axis'
+            ref={this._timeGraphContainerRef}
             options={{
                 id: 'timegraph-axis',
                 width: this.props.style.width,
@@ -44,5 +51,13 @@ export class TimeAxisComponent extends React.Component<TimeAxisProps> {
 
     protected getAxisCursors(): TimeGraphAxisCursors {
         return new TimeGraphAxisCursors('timeGraphAxisCursors', { color: this.props.style.cursorColor });
+    }
+
+    public exportTimeAxis(): string | null {
+        console.log('inside time-axis-component');
+        if (this._timeGraphContainerRef.current) {
+            return this._timeGraphContainerRef.current.export();
+        }
+        return null;
     }
 }

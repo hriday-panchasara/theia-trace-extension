@@ -19,7 +19,6 @@ import { scaleLinear } from 'd3-scale';
 import { axisLeft } from 'd3-axis';
 import { select } from 'd3-selection';
 import { throttle } from 'lodash';
-import JsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 type XYOuputState = AbstractOutputState & {
@@ -102,7 +101,8 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
             allMax: 0,
             allMin: 0,
             cursor: 'default',
-            shiftKey: false
+            shiftKey: false,
+            dropDownOpen: false
         };
 
         this.afterChartDraw = this.afterChartDraw.bind(this);
@@ -402,32 +402,32 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
         }
     }
 
-    shareOutput(): void {
-        // const report = new JsPDF('landscape','pt','b0');
-        if (document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'main-output-container')) {
-            html2canvas(document.getElementById(this.props.traceId + this.props.outputDescriptor.id  + 'main-output-container')!)
-            .then((canvas) => {
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new JsPDF();
-                
-                pdf.text('Trace Name: ' + 'wget-first-call', 10, 10);
-                pdf.text('Output Name: ' + this.props.outputDescriptor.name, 10, 20);
-                pdf.text('View Range: ' + this.props.unitController.viewRange.start + ' - ' + this.props.unitController.viewRange.end, 10, 30);
-                pdf.text('Selection Range: ' + this.props.unitController.selectionRange?.start + ' - ' + this.props.unitController.selectionRange?.end, 10, 40);
+    async shareOutput(): Promise<void> {
+        // if (document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'focusContainer')) {
+        //     signalManager().firstShareOutputSignal({outputID: this.props.traceId + this.props.outputDescriptor.id + 'focusContainer', isTimeScale: true})
+            
+        //     // export to jpg implementation
 
-                // The code makes sure that the aspect ratio is preserved and that the image fits the width of the PDF.
-                const imgProperties = pdf.getImageProperties(imgData);
-                console.log('pdf width: ' + pdf.internal.pageSize.getWidth());
-                console.log('img width: ' + canvas.width);
-                const pdfWidth = 0.9 * pdf.internal.pageSize.getWidth();
-                const pdfHeight =
-                (imgProperties.height * pdfWidth) / imgProperties.width;
+        //     // const canvas = await html2canvas(document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'focusContainer')!);
+        //     // const imgData = canvas.toDataURL('image/png');
 
-                pdf.addImage(imgData, 'PNG', 10, 50, pdfWidth, pdfHeight);
-                pdf.save('report.pdf');
-              })
+        //     // const link = document.createElement('a');
+        //     // if (typeof link.download === 'string') {
+        //     //     link.href = imgData;
+        //     //     link.download = 'output.jpg';
+          
+        //     //     document.body.appendChild(link);
+        //     //     link.click();
+        //     //     document.body.removeChild(link);
+        //     // } else {
+        //     //     window.open(imgData);
+        //     // }
+        // }
+    }
 
-        }
+    getDropDownOptions(): Array<string> {
+        const stringArr: Array<string> = ['Export as PDF', 'Export as PNG'];
+        return stringArr;
     }
 
     private afterChartDraw(chart: Chart) {

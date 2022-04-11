@@ -23,6 +23,7 @@ export declare interface SignalManager {
     fireMarkerSetsFetchedSignal(): void;
     fireMarkerCategoryClosedSignal(payload: { traceViewerId: string, markerCategory: string }): void;
     fireTraceServerStartedSignal(): void;
+    firstShareOutputSignal(payload: { outputID: string, isTimeScale: boolean }): void;
 }
 
 export const Signals = {
@@ -46,6 +47,7 @@ export const Signals = {
     MARKERSETS_FETCHED: 'markersets fetched',
     MARKER_CATEGORY_CLOSED: 'marker category closed',
     TRACE_SERVER_STARTED: 'trace server started',
+    SHARE_OUTPUT: 'share output'
 };
 
 export class SignalManager extends EventEmitter implements SignalManager {
@@ -105,6 +107,9 @@ export class SignalManager extends EventEmitter implements SignalManager {
     }
     fireTraceServerStartedSignal(): void {
         this.emit(Signals.TRACE_SERVER_STARTED);
+    }
+    firstShareOutputSignal(payload: { outputID: string, isTimeScale: boolean }): void {
+        this.emit(Signals.SHARE_OUTPUT, payload);
     }
 }
 

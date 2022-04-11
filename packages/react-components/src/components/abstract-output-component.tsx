@@ -43,6 +43,7 @@ export interface AbstractOutputProps {
 export interface AbstractOutputState {
     outputStatus: string;
     styleModel?: OutputStyleModel
+    dropDownOpen: boolean;
 }
 
 export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S extends AbstractOutputState> extends React.Component<P, S> {
@@ -51,11 +52,14 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
 
     private mainOutputContainer: React.RefObject<HTMLDivElement>;
 
+    protected dropDownRef: any;
+
     constructor(props: P) {
         super(props);
         this.mainOutputContainer = React.createRef();
         this.closeComponent = this.closeComponent.bind(this);
         this.renderTitleBar = this.renderTitleBar.bind(this);
+        this.dropDownRef = React.createRef();
     }
 
     render(): JSX.Element {
@@ -90,11 +94,21 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
             <button className='remove-component-button' onClick={this.closeComponent}>
                 <FontAwesomeIcon icon={faTimes} />
             </button>
-            <div className='title-bar-label' title={outputName} onClick={() => this.setFocus()}>
-                {outputName}
-                <button title="Export as PDF" className='share-output-button' onClick={() => this.shareOutput()}>
+            <div className='share-component-container' ref={this.dropDownRef}>
+                <button title="Export" className='share-component-button' onClick={() => this.handleButtonClick()}>
                     <FontAwesomeIcon icon={faShareSquare} />
                 </button>
+                {this.state.dropDownOpen && <div className="share-component-drop-down">
+                    <ul>{
+                        this.getDropDownOptions().map((option, index) =>
+                           <li key={index} onClick={() => this.shareOutput(option)}>{option}</li> 
+                        )
+                        }
+                    </ul>
+                </div>}
+            </div>
+            <div className='title-bar-label' title={outputName} onClick={() => this.setFocus()}>
+                {outputName}
                 <i id={this.props.traceId + this.props.outputDescriptor.id + 'handleSpinner'} className='fa fa-refresh fa-spin'
                     style={{ marginTop: '5px', visibility: 'hidden'}} />
             </div>
@@ -126,7 +140,9 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
     }
     abstract setFocus(): void;
 
-    abstract shareOutput(): void;
+    abstract shareOutput(option: string): void;
+
+    abstract getDropDownOptions(): Array<string>;
 
     abstract renderMainArea(): React.ReactNode;
 
@@ -149,4 +165,9 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
                 </div>
         </React.Fragment>;
     }
+
+    private handleButtonClick(): void {
+        this.setState(prevState => ({dropDownOpen: !prevState.dropDownOpen}));
+    }
+
 }

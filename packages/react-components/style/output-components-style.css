@@ -39,15 +39,33 @@
     justify-self: center;
     color: var(--theia-ui-font-color0)
 }
-.share-output-button {
-    border: none;
+.share-component-container {
+    padding: 0px 8px;
+    align-self: start;
+    justify-self: center;
+    position: relative;
+    display: inline-block;
+}
+.share-component-button {
     background: none;
-    cursor: pointer !important;
-    margin-top: 10px;
-    transform: rotate(180deg);
+    border: none;
     color: var(--theia-ui-font-color0)
 }
-
+.share-component-drop-down {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 2;
+    width: 300px;
+}
+.share-component-drop-down > ul {
+    list-style: none;
+    margin: 0;
+}
+.share-component-drop-down > ul > li {
+    padding: 8px 12px;
+    cursor: pointer;
+}
 .main-output-container {
     display: flex;
     overflow: hidden;

@@ -27,6 +27,7 @@ import hash from 'traceviewer-base/lib/utils/value-hash';
 import ColumnHeader from './utils/filter-tree/column-header';
 import { TimeGraphAnnotationComponent } from 'timeline-chart/lib/components/time-graph-annotation';
 import { Entry } from 'tsp-typescript-client';
+import html2canvas from 'html2canvas';
 
 type TimegraphOutputProps = AbstractOutputProps & {
     addWidgetResizeHandler: (handler: () => void) => void;
@@ -55,6 +56,7 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
     private horizontalContainer: React.RefObject<HTMLDivElement>;
     private timeGraphTreeRef: React.RefObject<HTMLDivElement>;
     private markerTreeRef: React.RefObject<HTMLDivElement>;
+    private chartContainerRef: React.RefObject<ReactTimeGraphContainer>;
 
     private tspDataProvider: TspDataProvider;
     private styleProvider: StyleProvider;
@@ -73,7 +75,8 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
             markerCategoryEntries: [],
             collapsedNodes: [],
             columns: [],
-            collapsedMarkerNodes: []
+            collapsedMarkerNodes: [],
+            dropDownOpen: false
         };
         this.selectedMarkerCategories = this.props.markerCategories;
         this.onToggleCollapse = this.onToggleCollapse.bind(this);
@@ -86,6 +89,7 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
         this.horizontalContainer = React.createRef();
         this.timeGraphTreeRef = React.createRef();
         this.markerTreeRef = React.createRef();
+        this.chartContainerRef = React.createRef();
         const providers: TimeGraphChartProviders = {
             /**
              * @param range requested time range
@@ -447,6 +451,7 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
         const grid = new TimeGraphChartGrid('timeGraphGrid', this.props.style.rowHeight, this.props.backgroundTheme === 'light' ? 0xdddddd : 0x34383C);
         const selectionRange = new TimeGraphChartSelectionRange('chart-selection-range', { color: this.props.style.cursorColor });
         return <ReactTimeGraphContainer
+            ref={this.chartContainerRef}
             options={
                 {
                     id: this.props.traceId + this.props.outputDescriptor.id + 'focusContainer',
@@ -476,8 +481,19 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
         }
     }
 
-    shareOutput(): void {
-        return;
+    async shareOutput(): Promise<void> {
+        console.log('share output clicked');
+        if (this.chartContainerRef.current) {
+            const timeGraphImage = this.chartContainerRef.current.export();
+            if (timeGraphImage) {
+                console.log(timeGraphImage);
+            }
+        }
+    }
+
+    getDropDownOptions(): Array<string> {
+        const stringArr: Array<string> = ['Export as PDF', 'Export as PNG'];
+        return stringArr;
     }
 
     protected getVerticalScrollbar(): JSX.Element {

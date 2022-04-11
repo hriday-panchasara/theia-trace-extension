@@ -16,10 +16,17 @@ interface TimeNavigatorProps {
 }
 
 export class TimeNavigatorComponent extends React.Component<TimeNavigatorProps> {
+    private _timeNavigatorContainerRef: React.RefObject<ReactTimeGraphContainer>;
+    constructor(props: TimeNavigatorProps) {
+        super(props);
+        this._timeNavigatorContainerRef = React.createRef();
+    }
+    
     render(): JSX.Element {
         const navi = new TimeGraphNavigator('timeGraphNavigator');
         return <ReactTimeGraphContainer
             id='time-navigator'
+            ref={this._timeNavigatorContainerRef}
             options={{
                 id: 'time-navigator',
                 width: this.props.style.width,
@@ -31,5 +38,12 @@ export class TimeNavigatorComponent extends React.Component<TimeNavigatorProps> 
             removeWidgetResizeHandler={this.props.removeWidgetResizeHandler}
             unitController={this.props.unitController}
             layers={[navi]} />;
+    }
+
+    public exportTimeAxis(): string | null {
+        if (this._timeNavigatorContainerRef.current) {
+            return this._timeNavigatorContainerRef.current.export();
+        }
+        return null;
     }
 }

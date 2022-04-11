@@ -62,4 +62,11 @@ export class ReactTimeGraphContainer extends React.Component<ReactTimeGraphConta
             this.container.updateCanvas(this.props.options.width, this.props.options.height, this.props.options.backgroundColor, this.props.options.lineColor);
         }
     }
+
+    public export(): string | null {
+        if (this.container) {
+            return this.container.createExport();
+        }
+        return null;
+    }
 }

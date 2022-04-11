@@ -35,10 +35,12 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
             collapsedNodes: [],
             orderedNodes: [],
             columns: [{title: 'Name', sortable: true}],
+            dropDownOpen: false
         };
     }
 
     componentDidMount(): void {
+        console.log('data-tree-comp-mounted');
         this.waitAnalysisCompletion();
     }
 
@@ -126,8 +128,50 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
         }
     }
 
-    shareOutput(): void {
-        return;
+    async shareOutput(option: string): Promise<void> {
+        if(option !== 'Export as csv') {
+            return;
+        }
+        const focusContainer = document.getElementById(this.props.traceId + this.props.outputDescriptor.id + 'focusContainer');
+        if (focusContainer) {
+            const table = focusContainer.querySelector('div:nth-child(2) > table');
+            if (table) {
+                const rows = table.querySelectorAll('tr');
+
+                const tableString = [].slice
+                    .call(rows)
+                    .map(function (row: HTMLTableRowElement) {
+                        // Query all cells
+                        const cells = row.querySelectorAll('th,td');
+                        return [].slice
+                            .call(cells)
+                            .map(function (cell: Element) {
+                                let content =  cell.textContent;
+                                if (content)
+                                    return content.replace(/\|/g, '');
+                                else
+                                    return content;
+                            })
+                            .join(',');
+                    })
+                    .join('\n');
+                
+                const link = document.createElement('a');
+                link.setAttribute('href', `data:text/csv;charset=utf-8,${encodeURIComponent(tableString)}`);
+                link.setAttribute('download', 'export');
+            
+                link.style.display = 'none';
+                document.body.appendChild(link);
+            
+                link.click();
+            
+                document.body.removeChild(link);
+            }
+        }
+    }
+
+    getDropDownOptions(): Array<string> {
+        return ['Export as csv'];
     }
 
     private onToggleCollapse(id: number, nodes: TreeNode[]) {

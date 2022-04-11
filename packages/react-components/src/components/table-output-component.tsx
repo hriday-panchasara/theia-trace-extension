@@ -64,7 +64,8 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         super(props);
         this.state = {
             outputStatus: ResponseStatus.RUNNING,
-            tableColumns: []
+            tableColumns: [],
+            dropDownOpen: false
         };
 
         this.frameworkComponents = {
@@ -144,7 +145,14 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
     }
 
     shareOutput(): void {
+        // The default Excel export behaviour will export the grid as it is currently rendered
+        // This means the exported spreadsheet will match what is displayed in the grid at the time of export following any sorting, filtering, etc...
+        this.gridApi?.exportDataAsCsv();
         return;
+    }
+
+    getDropDownOptions(): Array<string> {
+        return ['Export as csv'];
     }
 
     componentWillUnmount(): void {
