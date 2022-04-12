@@ -59,6 +59,8 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
         this.mainOutputContainer = React.createRef();
         this.closeComponent = this.closeComponent.bind(this);
         this.renderTitleBar = this.renderTitleBar.bind(this);
+        this.openDropdownMenu = this.openDropdownMenu.bind(this);
+        this.closeDropDownMenu = this.closeDropDownMenu.bind(this);
         this.dropDownRef = React.createRef();
     }
 
@@ -95,13 +97,13 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
                 <FontAwesomeIcon icon={faTimes} />
             </button>
             <div className='share-component-container' ref={this.dropDownRef}>
-                <button title="Export" className='share-component-button' onClick={() => this.handleButtonClick()}>
+                <button title="Export" className='share-component-button' onClick={this.openDropdownMenu}>
                     <FontAwesomeIcon icon={faShareSquare} />
                 </button>
                 {this.state.dropDownOpen && <div className="share-component-drop-down">
                     <ul>{
                         this.getDropDownOptions().map((option, index) =>
-                           <li key={index} onClick={() => this.shareOutput(option)}>{option}</li> 
+                           <li className='drop-down-list-item' key={index} onClick={() => this.shareOutput(option)}>{option}</li> 
                         )
                         }
                     </ul>
@@ -166,8 +168,16 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
         </React.Fragment>;
     }
 
-    private handleButtonClick(): void {
-        this.setState(prevState => ({dropDownOpen: !prevState.dropDownOpen}));
+    private openDropdownMenu(): void {
+        this.setState({dropDownOpen: true}, () => {
+            document.addEventListener('click', this.closeDropDownMenu);
+        });
+    }
+    
+    private closeDropDownMenu(): void {
+        this.setState({dropDownOpen: false}, () => {
+            document.removeEventListener('click', this.closeDropDownMenu);
+        });
     }
 
 }

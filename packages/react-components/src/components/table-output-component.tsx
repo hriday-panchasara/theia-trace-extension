@@ -117,6 +117,7 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
                 onCellKeyDown={this.onKeyDown}
                 frameworkComponents={this.frameworkComponents}
                 enableBrowserTooltips={true}
+                sideBar={'columns'}
             >
             </AgGridReact>
         </div>;
@@ -144,15 +145,11 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         }
     }
 
-    shareOutput(): void {
-        // The default Excel export behaviour will export the grid as it is currently rendered
-        // This means the exported spreadsheet will match what is displayed in the grid at the time of export following any sorting, filtering, etc...
-        this.gridApi?.exportDataAsCsv();
-        return;
-    }
-
     getDropDownOptions(): Array<string> {
-        return ['Export as csv'];
+        if (this.selectStartIndex !== -1) {
+            return ['Export table to csv', 'Export selected rows to csv'];
+        }
+        return ['Export table to csv'];
     }
 
     componentWillUnmount(): void {
@@ -397,6 +394,7 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
     }
 
     private handleRowSelectionChange() {
+        console.log('row selection change called');
         if (this.timestampCol) {
             const startTimestamp = String(this.startTimestamp);
             const endTimestamp = String(this.endTimestamp);
@@ -408,6 +406,7 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
     }
 
     private async handleTimeSelectionChange(range?: TimelineChart.TimeGraphRange) {
+        console.log('time selection change called');
         if (range) {
             if (this.eventSignal) {
                 this.eventSignal = false;
@@ -513,6 +512,96 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         });
 
         return linesArray;
+    }
+
+    async shareOutput(option: string): Promise<void> {
+        if (!this.gridApi) {
+            return;
+        }
+
+        const traceUUID = this.props.traceId;
+        const tspClient = this.props.tspClient;
+        const outputId = this.props.outputDescriptor.id;
+        let fetchIndex = 0;
+        let linesToFetch = this.gridApi.getDisplayedRowCount();
+        const linesArray = new Array<Line>();
+
+        // Convert to csv
+        let csv_data = [];
+
+        // Fetch column headers
+        const colHeaderRow: string[] = [];
+        this.columnArray.forEach(columnHeader => {
+            colHeaderRow.push(columnHeader.headerName);
+        });
+        csv_data.push(colHeaderRow.join(","));
+
+        if (option === 'Export selected rows to csv') {
+            if (this.startTimestamp && this.endTimestamp) {
+                const startIndex = await this.fetchTableIndex(this.startTimestamp < this.endTimestamp ? this.startTimestamp : this.endTimestamp);
+                const endIndex = await this.fetchTableIndex(this.startTimestamp > this.endTimestamp ? this.startTimestamp : this.endTimestamp);
+
+                if (startIndex && endIndex) {
+                    fetchIndex = startIndex;
+                    linesToFetch = endIndex - startIndex + 1;
+                }
+            }
+        }
+
+        const tspClientResponse = await tspClient.fetchTableLines(traceUUID, outputId, QueryHelper.tableQuery(this.columnIds, fetchIndex, linesToFetch, {}));
+        const lineResponse = tspClientResponse.getModel();
+        if (!tspClientResponse.isOk() || !lineResponse) {
+            return;
+        }
+        const model = lineResponse.model;
+        const lines = model.lines;
+        lines.forEach(line => {
+            const obj: any = {};
+            const cells = line.cells;
+            const columnIds = model.columnIds;
+
+            if (this.showIndexColumn) {
+                obj[0] = line.index.toString();
+            }
+
+            cells.forEach((cell, index) => {
+                const id = this.showIndexColumn ? columnIds[index] + 1 : columnIds[index];
+                obj[id] = cell.content;
+            });
+
+            linesArray.push(obj);
+        });
+
+        for (let i=0;i<lines.length;i++) {
+            // Stores each csv row data
+            let csvrow = [];
+            for (let j=0;j<lines[i].cells.length;j++) {
+                // Get the text data of each cell of
+                // a row and push it to csvrow
+                const cellContent = lines[i].cells[j].content;
+                if(cellContent.includes(',')) {
+                    csvrow.push('"' + cellContent + '"');
+                } else {
+                    csvrow.push(cellContent);
+                }
+            }
+            // Combine each column value with comma
+            csv_data.push(csvrow.join(","));
+        }
+
+        // combine each row data with new line character
+        let tableString = csv_data.join('\n');
+
+        const link = document.createElement('a');
+        link.setAttribute('href', `data:text/csv;charset=utf-8,${encodeURIComponent(tableString)}`);
+        link.setAttribute('download', 'export');
+    
+        link.style.display = 'none';
+        document.body.appendChild(link);
+    
+        link.click();
+    
+        document.body.removeChild(link);
     }
 
     private onModelUpdated = async () => {
@@ -653,6 +742,7 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
     }
 
     private selectRows(): void {
+        console.log('select rows called');
         if (this.gridApi) {
             this.gridApi.forEachNode(rowNode => {
                 if (rowNode.id) {

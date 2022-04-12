@@ -13,10 +13,7 @@
 .widget-handle {
     background-color: var(--theia-layout-color4);
     display: grid;
-    grid-template-rows: 25px 1fr;
-}
-.widget-handle :hover {
-    background-color: var(--theia-list-hoverBackground); 
+    grid-template-rows: 25px 25px 1fr;
 }
 .title-bar-label {
     text-align: center;
@@ -31,6 +28,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+.title-bar-label:hover {
+    background-color: var(--theia-list-hoverBackground); 
+}
 .remove-component-button {
     background: none;
     border: none;
@@ -39,8 +39,11 @@
     justify-self: center;
     color: var(--theia-ui-font-color0)
 }
+.remove-component-button:hover {
+    cursor: pointer;
+}
 .share-component-container {
-    padding: 0px 8px;
+    padding: 2px 8px;
     align-self: start;
     justify-self: center;
     position: relative;
@@ -51,20 +54,39 @@
     border: none;
     color: var(--theia-ui-font-color0)
 }
+.share-component-button:hover {
+    background: none;
+    cursor: pointer;
+}
 .share-component-drop-down {
     position: absolute;
     top: 100%;
-    left: 0;
+    left: 50%;
+    padding: 0;
     z-index: 2;
-    width: 300px;
+    min-width: 180px;
+    background: var(--theia-menu-background);
+    color: var(--theia-menu-foreground);
+    font-size: var(--theia-ui-font-size1);
+    box-shadow: 0px 1px 6px var(--theia-widget-shadow);
+    border: 1px solid var(--theia-menu-border);
 }
 .share-component-drop-down > ul {
-    list-style: none;
+    list-style-type: none;
     margin: 0;
+    padding: 0;
+    display: table;
+    width: 100%;
 }
-.share-component-drop-down > ul > li {
+.drop-down-list-item {
     padding: 8px 12px;
-    cursor: pointer;
+    background-color: var(--theia-menu-background);
+    color: var(--theia-menu-foreground);
+}
+.drop-down-list-item:hover {
+    background: var(--theia-menu-selectionBackground);
+    color: var(--theia-menu-selectionForeground);
+    opacity: 1;
 }
 .main-output-container {
     display: flex;
