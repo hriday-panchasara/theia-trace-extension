@@ -296,3 +296,7 @@ canvas {
 .hoverClass:hover {
     border: 1px solid black;
 }
+
+.react-grid-item:hover {
+    z-index: 10;
+}
