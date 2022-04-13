@@ -163,8 +163,11 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
         });
     }
     
-    private closeOptionsMenu(event: Event): void {
-        // if (this.optionsMenuRef.contains(event.target)) {
+    private closeOptionsMenu(event: MouseEvent): void {
+            if (this.optionsMenuRef.current.contains(event.target)) {
+                return;
+            }
+
             this.setState({optionsDropdownOpen: false}, () => {
                 document.removeEventListener('click', this.closeOptionsMenu);
             });

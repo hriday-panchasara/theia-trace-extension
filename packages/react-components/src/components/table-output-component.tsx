@@ -670,10 +670,12 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         
         return <React.Fragment>
             <table style={{width: '100%'}}>
-                <tr style={{textAlign: 'left', marginBottom: '10px'}}>
-                    <th>Show/Hide Column</th>
-                    <th>Column Name</th>
-                </tr>
+                <thead>
+                    <tr style={{textAlign: 'left'}}>
+                        <th>Show/Hide Column</th>
+                        <th>Column Name</th>
+                    </tr>
+                </thead>
                 <tbody>
                     {columns.map((column, key) => {
                         return (
