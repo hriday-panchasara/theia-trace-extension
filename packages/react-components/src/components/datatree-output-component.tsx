@@ -188,4 +188,8 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
             this._debouncedFetchSelectionData();
         }
     }
+
+    showOptions(): React.ReactNode {
+        return <></>;
+    }
 }

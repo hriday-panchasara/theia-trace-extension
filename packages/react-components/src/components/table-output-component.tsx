@@ -14,6 +14,7 @@ import { ResponseStatus } from 'tsp-typescript-client';
 
 type TableOuputState = AbstractOutputState & {
     tableColumns: ColDef[];
+    testVal: number;
 };
 
 type TableOutputProps = AbstractOutputProps & {
@@ -64,7 +65,9 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         super(props);
         this.state = {
             outputStatus: ResponseStatus.RUNNING,
-            tableColumns: []
+            tableColumns: [],
+            testVal: 0,
+            optionsDropdownOpen: false
         };
 
         this.frameworkComponents = {
@@ -648,5 +651,46 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
                 }
             });
         }
+    }
+
+    private toggleColumnVisibility(columnApi: ColumnApi, column: ColDef) {
+        columnApi.setColumnsVisible([column.field!], !columnApi!.getColumn(column).isVisible());
+        this.setState({
+            testVal: 1
+        });
+
+        return;
+    }
+
+    showOptions(): React.ReactNode {
+        if (!this.columnApi) {
+            return;
+        }
+        const columns = this.columnApi.getAllColumns();
+        
+        return <React.Fragment>
+            <table style={{width: '100%'}}>
+                <tr style={{textAlign: 'left', marginBottom: '10px'}}>
+                    <th>Show/Hide Column</th>
+                    <th>Column Name</th>
+                </tr>
+                <tbody>
+                    {columns.map((column, key) => {
+                        return (
+                            <tr key={key}>
+                                <td>
+                                    <input
+                                        type='checkbox'
+                                        checked={this.columnApi!.getColumn(column).isVisible()}
+                                        onChange={() => this.toggleColumnVisibility(this.columnApi!, column.getColDef())}
+                                    />
+                                </td>
+                                <td>{column.getColDef().headerName}</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </React.Fragment>;
     }
 }

@@ -39,6 +39,9 @@
     justify-self: center;
     color: var(--theia-ui-font-color0)
 }
+.remove-component-button:hover {
+    cursor: pointer;
+}
 
 .main-output-container {
     display: flex;
@@ -247,4 +250,18 @@ canvas {
 
 .hoverClass:hover {
     border: 1px solid black;
+}
+
+.options-menu-drop-down {
+    position: absolute;
+    left: 100%;
+    width: 300px;
+    height: 243px;
+    overflow: scroll;
+    z-index: 999 !important;
+    background: var(--theia-menu-background);
+    color: var(--theia-menu-foreground);
+    font-size: var(--theia-ui-font-size1);
+    box-shadow: 0px 1px 6px var(--theia-widget-shadow);
+    border: 1px solid var(--ag-border-color, #bdc3c7) ;
 }

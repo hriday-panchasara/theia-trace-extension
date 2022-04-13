@@ -2,7 +2,7 @@ import * as React from 'react';
 import { OutputDescriptor } from 'tsp-typescript-client/lib/models/output-descriptor';
 import { TspClient } from 'tsp-typescript-client/lib/protocol/tsp-client';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { TimeGraphUnitController } from 'timeline-chart/lib/time-graph-unit-controller';
 import { TimeRange } from 'traceviewer-base/lib/utils/time-range';
 import { OutputComponentStyle } from './utils/output-component-style';
@@ -43,6 +43,7 @@ export interface AbstractOutputProps {
 export interface AbstractOutputState {
     outputStatus: string;
     styleModel?: OutputStyleModel
+    optionsDropdownOpen?: boolean;
 }
 
 export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S extends AbstractOutputState> extends React.Component<P, S> {
@@ -51,11 +52,16 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
 
     private mainOutputContainer: React.RefObject<HTMLDivElement>;
 
+    private optionsMenuRef: any;
+
     constructor(props: P) {
         super(props);
         this.mainOutputContainer = React.createRef();
         this.closeComponent = this.closeComponent.bind(this);
         this.renderTitleBar = this.renderTitleBar.bind(this);
+        this.openOptionsMenu = this.openOptionsMenu.bind(this);
+        this.closeOptionsMenu = this.closeOptionsMenu.bind(this);
+        this.optionsMenuRef = React.createRef();
     }
 
     render(): JSX.Element {
@@ -94,7 +100,11 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
                 {outputName}
                 <i id={this.props.traceId + this.props.outputDescriptor.id + 'handleSpinner'} className='fa fa-refresh fa-spin'
                     style={{ marginTop: '5px', visibility: 'hidden'}} />
+                {this.state.optionsDropdownOpen !== undefined && <button title='Show View Options' className='remove-component-button' onClick={this.openOptionsMenu}>
+                    <FontAwesomeIcon icon={faBars} />
+                </button>}
             </div>
+            {this.state.optionsDropdownOpen && <div className='options-menu-drop-down' ref={this.optionsMenuRef}>{this.showOptions()}</div>}
         </React.Fragment>;
     }
 
@@ -127,6 +137,8 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
 
     abstract resultsAreEmpty(): boolean;
 
+    abstract showOptions(): React.ReactNode;
+
     protected renderAnalysisFailed(): React.ReactFragment {
         return <React.Fragment>
             <div className='message-main-area'>
@@ -144,4 +156,18 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
                 </div>
         </React.Fragment>;
     }
+
+    private openOptionsMenu(): void {
+        this.setState({optionsDropdownOpen: true}, () => {
+            document.addEventListener('click', this.closeOptionsMenu);
+        });
+    }
+    
+    private closeOptionsMenu(event: Event): void {
+        // if (this.optionsMenuRef.contains(event.target)) {
+            this.setState({optionsDropdownOpen: false}, () => {
+                document.removeEventListener('click', this.closeOptionsMenu);
+            });
+        }
+    // }
 }

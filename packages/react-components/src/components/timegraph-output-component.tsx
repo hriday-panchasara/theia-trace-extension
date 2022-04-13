@@ -785,4 +785,8 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
         }
         return undefined;
     }
+
+    showOptions(): React.ReactNode {
+        return <></>;
+    }
 }

@@ -941,4 +941,8 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
         }
         return colors[colorIndex];
     }
+
+    showOptions(): React.ReactNode {
+        return <></>;
+    }
 }

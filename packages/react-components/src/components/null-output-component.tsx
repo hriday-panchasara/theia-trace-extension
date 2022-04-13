@@ -34,4 +34,8 @@ export class NullOutputComponent extends AbstractOutputComponent<NullOutputProps
     setFocus(): void {
         return;
     }
+
+    showOptions(): React.ReactNode {
+        return <></>;
+    }
   }
