@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { OutputDescriptor } from 'tsp-typescript-client';
 import { Experiment } from 'tsp-typescript-client/lib/models/experiment';
 import { Trace } from 'tsp-typescript-client/lib/models/trace';
 import { OpenedTracesUpdatedSignalPayload } from './opened-traces-updated-signal-payload';
@@ -23,6 +24,7 @@ export declare interface SignalManager {
     fireMarkerSetsFetchedSignal(): void;
     fireMarkerCategoryClosedSignal(payload: { traceViewerId: string, markerCategory: string }): void;
     fireTraceServerStartedSignal(): void;
+    firePinView(payload: {output: OutputDescriptor, traceId: string}): void;
 }
 
 export const Signals = {
@@ -46,6 +48,7 @@ export const Signals = {
     MARKERSETS_FETCHED: 'markersets fetched',
     MARKER_CATEGORY_CLOSED: 'marker category closed',
     TRACE_SERVER_STARTED: 'trace server started',
+    PIN_VIEW: 'view pinned'
 };
 
 export class SignalManager extends EventEmitter implements SignalManager {
@@ -105,6 +108,9 @@ export class SignalManager extends EventEmitter implements SignalManager {
     }
     fireTraceServerStartedSignal(): void {
         this.emit(Signals.TRACE_SERVER_STARTED);
+    }
+    firePinView(payload: {output: OutputDescriptor, traceId: string}): void {
+        this.emit(Signals.PIN_VIEW, payload);
     }
 }
 

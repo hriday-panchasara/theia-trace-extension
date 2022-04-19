@@ -11,7 +11,7 @@
 }
 
 .widget-handle {
-    background-color: var(--theia-layout-color4);
+    background-color: var(--theia-editor-background);
     display: grid;
     grid-template-rows: 25px 1fr;
 }
@@ -39,12 +39,20 @@
     justify-self: center;
     color: var(--theia-ui-font-color0)
 }
+.pin-component-button {
+    transform: rotate(180deg);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--theia-ui-font-color0)
+}
 
 .main-output-container {
     display: flex;
     overflow: hidden;
     position: relative;
     z-index: -1;
+    background: var(--theia-editor-background);
 }
 
 .disable-select {

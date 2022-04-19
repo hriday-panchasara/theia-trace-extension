@@ -83,6 +83,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private traceContextContainer: React.RefObject<HTMLDivElement>;
     private _storedTimescaleLayout: Layout[] = [];
     private _storedNonTimescaleLayout: Layout[] = [];
+    private _storedPinnedViewsLayout: Layout[] = [];
+    private _pinnedViews: OutputDescriptor[] = [];
 
     protected widgetResizeHandlers: (() => void)[] = [];
     protected readonly addWidgetResizeHandler = (h: () => void): void => {
@@ -99,6 +101,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private onBackgroundThemeChange = (theme: string): void => this.doHandleBackgroundThemeChange(theme);
     private onUpdateZoom = (hasZoomedIn: boolean) => this.doHandleUpdateZoomSignal(hasZoomedIn);
     private onResetZoom = () => this.doHandleResetZoomSignal();
+    private onPinView = (payload: {output: OutputDescriptor, traceId: string}) => this.doHandlePinView(payload);
 
     constructor(props: TraceContextProps) {
         super(props);
@@ -247,12 +250,14 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         signalManager().on(Signals.THEME_CHANGED, this.onBackgroundThemeChange);
         signalManager().on(Signals.UPDATE_ZOOM, this.onUpdateZoom);
         signalManager().on(Signals.RESET_ZOOM, this.onResetZoom);
+        signalManager().on(Signals.PIN_VIEW, this.onPinView);
     }
 
     private unsubscribeToEvents() {
         signalManager().off(Signals.THEME_CHANGED, this.onBackgroundThemeChange);
         signalManager().off(Signals.UPDATE_ZOOM, this.onUpdateZoom);
         signalManager().off(Signals.RESET_ZOOM, this.onResetZoom);
+        signalManager().off(Signals.PIN_VIEW, this.onPinView);
     }
 
     async componentDidUpdate(prevProps: TraceContextProps): Promise<void> {
@@ -335,7 +340,10 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private onLayoutChange(currentLayout: Layout[]): void {
         if (currentLayout.length > 0) {
             const curLayoutCopy = cloneDeep(currentLayout);
-            if (this._storedTimescaleLayout.find(obj => obj.i === currentLayout[0].i)) {
+            if (this._storedPinnedViewsLayout.find(obj => obj.i === currentLayout[0].i)) {
+                this._storedPinnedViewsLayout = curLayoutCopy;
+            }
+            else if (this._storedTimescaleLayout.find(obj => obj.i === currentLayout[0].i)) {
                 this._storedTimescaleLayout = curLayoutCopy;
             } else {
                 this._storedNonTimescaleLayout = curLayoutCopy;
@@ -395,6 +403,9 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                     addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
              </div>
             <div className='outputs-grid-layout'>
+            {this._pinnedViews.length > 0 &&
+                this.renderGridLayout(this._pinnedViews, this._storedPinnedViewsLayout)
+            }
             {timeScaleCharts.length > 0 &&
                 <>
                     {this.renderGridLayout(timeScaleCharts, this._storedTimescaleLayout)}
@@ -478,6 +489,23 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
             <br />
             {'To see available views, open the Trace Viewer.'}
         </div>;
+    }
+
+    private doHandlePinView(payload: {output: OutputDescriptor, traceId: string}) {
+        console.log('pin view signal caught');
+        const view = document.getElementById(payload.traceId + payload.output.id);
+        if (view) {
+            // if (payload.output.type === 'TIME_GRAPH' || payload.output.type === 'TREE_TIME_XY') {
+
+            // }
+
+
+
+            console.log('view DOM found');
+            view.style.position = "fixed";
+            view.style.zIndex = "1000";
+            view.style.top = "90px";
+        }
     }
 
     private generateGridLayout(): void {

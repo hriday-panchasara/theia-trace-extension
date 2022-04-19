@@ -1077,4 +1077,9 @@ export class XYOutputComponent extends AbstractTreeOutputComponent<AbstractOutpu
         }
         return colors[colorIndex];
     }
+
+    pinView(): void {
+        console.log('firing signal');
+       signalManager().firePinView({output: this.props.outputDescriptor, traceId: this.props.traceId});
+    }
 }

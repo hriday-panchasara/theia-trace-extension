@@ -2,7 +2,7 @@ import * as React from 'react';
 import { OutputDescriptor } from 'tsp-typescript-client/lib/models/output-descriptor';
 import { TspClient } from 'tsp-typescript-client/lib/protocol/tsp-client';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faThumbtack } from '@fortawesome/free-solid-svg-icons';
 import { TimeGraphUnitController } from 'timeline-chart/lib/time-graph-unit-controller';
 import { TimeRange } from 'traceviewer-base/lib/utils/time-range';
 import { OutputComponentStyle } from './utils/output-component-style';
@@ -94,6 +94,9 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
                 {outputName}
                 <i id={this.props.traceId + this.props.outputDescriptor.id + 'handleSpinner'} className='fa fa-refresh fa-spin'
                     style={{ marginTop: '5px', visibility: 'hidden'}} />
+                <button title='Pin View' className='pin-component-button' onClick={() => this.pinView()}>
+                    <FontAwesomeIcon icon={faThumbtack} />
+                </button>
             </div>
         </React.Fragment>;
     }
@@ -126,6 +129,8 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
     abstract renderMainArea(): React.ReactNode;
 
     abstract resultsAreEmpty(): boolean;
+
+    abstract pinView(): void;
 
     protected renderAnalysisFailed(): React.ReactFragment {
         return <React.Fragment>

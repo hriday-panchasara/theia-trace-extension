@@ -653,4 +653,8 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
             });
         }
     }
+
+    pinView(): void {
+        return;
+    }
 }

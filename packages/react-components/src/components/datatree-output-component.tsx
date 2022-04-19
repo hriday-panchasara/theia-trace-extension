@@ -188,4 +188,8 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
             this._debouncedFetchSelectionData();
         }
     }
+
+    pinView(): void {
+        return;
+    }
 }
