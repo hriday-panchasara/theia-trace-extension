@@ -2,7 +2,7 @@ import * as React from 'react';
 import { OutputDescriptor } from 'tsp-typescript-client/lib/models/output-descriptor';
 import { TspClient } from 'tsp-typescript-client/lib/protocol/tsp-client';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faThumbtack } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faThumbtack, faUnlock } from '@fortawesome/free-solid-svg-icons';
 import { TimeGraphUnitController } from 'timeline-chart/lib/time-graph-unit-controller';
 import { TimeRange } from 'traceviewer-base/lib/utils/time-range';
 import { OutputComponentStyle } from './utils/output-component-style';
@@ -10,6 +10,7 @@ import { OutputStyleModel } from 'tsp-typescript-client/lib/models/styles';
 import { TooltipComponent } from './tooltip-component';
 import { TooltipXYComponent } from './tooltip-xy-component';
 import { ResponseStatus } from 'tsp-typescript-client/lib/models/response/responses';
+import { signalManager } from 'traceviewer-base/lib/signals/signal-manager';
 
 export interface AbstractOutputProps {
     tspClient: TspClient;
@@ -38,11 +39,12 @@ export interface AbstractOutputProps {
     onTouchStart?: VoidFunction;
     onTouchEnd?: VoidFunction;
     setChartOffset?: (chartOffset: number) => void;
+    pinned?: boolean
 }
 
 export interface AbstractOutputState {
     outputStatus: string;
-    styleModel?: OutputStyleModel
+    styleModel?: OutputStyleModel;
 }
 
 export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S extends AbstractOutputState> extends React.Component<P, S> {
@@ -94,14 +96,20 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
                 {outputName}
                 <i id={this.props.traceId + this.props.outputDescriptor.id + 'handleSpinner'} className='fa fa-refresh fa-spin'
                     style={{ marginTop: '5px', visibility: 'hidden'}} />
-                <button title='Pin View' className='pin-component-button' onClick={() => this.pinView()}>
+                {this.props.pinned === undefined && <button title='Pin View' className='pin-component-button' onClick={() => this.pinView()}>
                     <FontAwesomeIcon icon={faThumbtack} />
-                </button>
+                </button>}
+                {this.props.pinned === true && <button title='Unpin View' className='pin-component-button' onClick={() => this.unPinView()}>
+                    <FontAwesomeIcon icon={faUnlock} />
+                </button>}
             </div>
         </React.Fragment>;
     }
 
     private closeComponent() {
+        if (this.props.pinned) {
+            signalManager().fireUnPinView();
+        }
         this.props.onOutputRemove(this.props.outputDescriptor.id);
     }
 
@@ -130,7 +138,13 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
 
     abstract resultsAreEmpty(): boolean;
 
-    abstract pinView(): void;
+    private pinView(): void {
+        signalManager().firePinView({output: this.props.outputDescriptor, traceId: this.props.traceId});
+    }
+
+    private unPinView(): void {
+        signalManager().fireUnPinView();
+    }
 
     protected renderAnalysisFailed(): React.ReactFragment {
         return <React.Fragment>

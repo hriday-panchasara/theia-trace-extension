@@ -34,8 +34,4 @@ export class NullOutputComponent extends AbstractOutputComponent<NullOutputProps
     setFocus(): void {
         return;
     }
-
-    pinView(): void {
-        return;
-    }
   }

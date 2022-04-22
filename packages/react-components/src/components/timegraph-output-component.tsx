@@ -785,8 +785,4 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
         }
         return undefined;
     }
-
-    pinView(): void {
-        return;
-    }
 }

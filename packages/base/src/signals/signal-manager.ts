@@ -25,6 +25,7 @@ export declare interface SignalManager {
     fireMarkerCategoryClosedSignal(payload: { traceViewerId: string, markerCategory: string }): void;
     fireTraceServerStartedSignal(): void;
     firePinView(payload: {output: OutputDescriptor, traceId: string}): void;
+    fireUnPinView(): void;
 }
 
 export const Signals = {
@@ -48,7 +49,8 @@ export const Signals = {
     MARKERSETS_FETCHED: 'markersets fetched',
     MARKER_CATEGORY_CLOSED: 'marker category closed',
     TRACE_SERVER_STARTED: 'trace server started',
-    PIN_VIEW: 'view pinned'
+    PIN_VIEW: 'view pinned',
+    UNPIN_VIEW: 'view unpinned'
 };
 
 export class SignalManager extends EventEmitter implements SignalManager {
@@ -111,6 +113,9 @@ export class SignalManager extends EventEmitter implements SignalManager {
     }
     firePinView(payload: {output: OutputDescriptor, traceId: string}): void {
         this.emit(Signals.PIN_VIEW, payload);
+    }
+    fireUnPinView(): void {
+        this.emit(Signals.UNPIN_VIEW);
     }
 }
 

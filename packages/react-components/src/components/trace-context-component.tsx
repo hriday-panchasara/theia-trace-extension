@@ -54,6 +54,7 @@ interface TraceContextState {
     traceIndexing: boolean;
     style: OutputComponentStyle;
     backgroundTheme: string;
+    pinnedView: OutputDescriptor | undefined;
 }
 
 export interface PersistedState {
@@ -83,9 +84,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private traceContextContainer: React.RefObject<HTMLDivElement>;
     private _storedTimescaleLayout: Layout[] = [];
     private _storedNonTimescaleLayout: Layout[] = [];
-    private _storedPinnedViewsLayout: Layout[] = [];
-    private _pinnedViews: OutputDescriptor[] = [];
-
+    private _storedPinnedViewLayout: Layout | undefined = undefined;
     protected widgetResizeHandlers: (() => void)[] = [];
     protected readonly addWidgetResizeHandler = (h: () => void): void => {
         this.widgetResizeHandlers.push(h);
@@ -102,6 +101,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private onUpdateZoom = (hasZoomedIn: boolean) => this.doHandleUpdateZoomSignal(hasZoomedIn);
     private onResetZoom = () => this.doHandleResetZoomSignal();
     private onPinView = (payload: {output: OutputDescriptor, traceId: string}) => this.doHandlePinView(payload);
+    private onUnPinView = () => this.doHandleUnPinView();
 
     constructor(props: TraceContextProps) {
         super(props);
@@ -147,7 +147,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 cursorColor: 0x259fd8,
                 lineColor: this.props.backgroundTheme === 'light' ? 0x757575 : 0xbbbbbb
             },
-            backgroundTheme: this.props.backgroundTheme
+            backgroundTheme: this.props.backgroundTheme,
+            pinnedView: undefined
         };
         const absoluteRange = traceRange.getDuration();
         this.unitController = new TimeGraphUnitController(absoluteRange, { start: BigInt(0), end: absoluteRange });
@@ -251,6 +252,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         signalManager().on(Signals.UPDATE_ZOOM, this.onUpdateZoom);
         signalManager().on(Signals.RESET_ZOOM, this.onResetZoom);
         signalManager().on(Signals.PIN_VIEW, this.onPinView);
+        signalManager().on(Signals.UNPIN_VIEW, this.onUnPinView);
     }
 
     private unsubscribeToEvents() {
@@ -258,20 +260,42 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         signalManager().off(Signals.UPDATE_ZOOM, this.onUpdateZoom);
         signalManager().off(Signals.RESET_ZOOM, this.onResetZoom);
         signalManager().off(Signals.PIN_VIEW, this.onPinView);
+        signalManager().off(Signals.UNPIN_VIEW, this.onUnPinView);
     }
 
-    async componentDidUpdate(prevProps: TraceContextProps): Promise<void> {
+    async componentDidUpdate(prevProps: TraceContextProps, prevState: TraceContextState): Promise<void> {
         // Rebuild enables tooltip on newly added output component
         ReactTooltip.rebuild();
         if (prevProps.outputs.length < this.props.outputs.length) {
+            // added a new output - scroll to bottom
             this.scrollToBottom();
-        }
+        } else if (prevProps.outputs.length === this.props.outputs.length && 
+            prevState.pinnedView === undefined && this.state.pinnedView !== undefined) {
+            // one of the existing outputs is pinned to top - scroll to top
+            this.scrollToPinnedView();
+        } else if (prevProps.outputs.length === this.props.outputs.length && 
+            prevState.pinnedView !== undefined && this.state.pinnedView === undefined) {
+                // one of the existing outputs is unpinned - scroll to unpinned output
+                this.scrollToUnPinnedView(prevState.pinnedView);
+            }
     }
 
     private scrollToBottom(): void {
         if (this.props.outputs.length) {
             const bottomOutputId = this.props.outputs[this.props.outputs.length - 1].id;
             document.getElementById(this.state.experiment.UUID+bottomOutputId)?.focus();
+        }
+    }
+
+    private scrollToPinnedView(): void {
+        if (this.state.pinnedView) {
+            document.getElementById(this.state.experiment.UUID+this.state.pinnedView.id)?.focus();
+        }
+    }
+
+    private scrollToUnPinnedView(view: OutputDescriptor) {
+        if (view) {
+            document.getElementById(this.state.experiment.UUID+view.id)?.focus();
         }
     }
 
@@ -340,8 +364,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private onLayoutChange(currentLayout: Layout[]): void {
         if (currentLayout.length > 0) {
             const curLayoutCopy = cloneDeep(currentLayout);
-            if (this._storedPinnedViewsLayout.find(obj => obj.i === currentLayout[0].i)) {
-                this._storedPinnedViewsLayout = curLayoutCopy;
+            if (this._storedPinnedViewLayout && this._storedPinnedViewLayout.i === currentLayout[0].i) {
+                this._storedPinnedViewLayout = curLayoutCopy[0];
             }
             else if (this._storedTimescaleLayout.find(obj => obj.i === currentLayout[0].i)) {
                 this._storedTimescaleLayout = curLayoutCopy;
@@ -386,6 +410,9 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         const nonTimeScaleCharts: Array<OutputDescriptor> = [];
 
         for (const output of this.props.outputs) {
+            if (this.state.pinnedView === output) {
+                continue;
+            }
             if (output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY') {
                 timeScaleCharts.push(output);
             } else {
@@ -398,17 +425,24 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 // Syntax to use ReactGridLayout with Custom Components, while passing resized dimensions to children:
                 // https://github.com/STRML/react-grid-layout/issues/299#issuecomment-524959229
             }
-            <div style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING, visibility: timeScaleCharts.length ? 'visible' : 'hidden' }}>
+            <div style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING, visibility: (timeScaleCharts.length 
+                || (this.state.pinnedView?.type === 'TIME_GRAPH' || this.state.pinnedView?.type === 'TREE_TIME_XY')) ? 'visible' : 'hidden' }}>
                 <TimeAxisComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
                     addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
-             </div>
-            <div className='outputs-grid-layout'>
-            {this._pinnedViews.length > 0 &&
-                this.renderGridLayout(this._pinnedViews, this._storedPinnedViewsLayout)
+            </div>
+            {this.state.pinnedView !== undefined && this._storedPinnedViewLayout !== undefined &&
+                <div className='pinned-views-layout'>
+                    {this.renderGridLayout([this.state.pinnedView], [this._storedPinnedViewLayout])}
+                </div>
             }
+            <div className='outputs-grid-layout'>
             {timeScaleCharts.length > 0 &&
                 <>
                     {this.renderGridLayout(timeScaleCharts, this._storedTimescaleLayout)}
+                </>
+            }
+            {(timeScaleCharts.length > 0 || (this.state.pinnedView?.type === 'TIME_GRAPH' || this.state.pinnedView?.type === 'TREE_TIME_XY')) &&
+                <>
                     <div className='sticky-div' style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING }}>
                         <TimeNavigatorComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
                             addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
@@ -445,7 +479,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                     unitController: this.unitController,
                     outputWidth: this.state.style.width,
                     backgroundTheme: this.state.backgroundTheme,
-                    setChartOffset: this.setChartOffset
+                    setChartOffset: this.setChartOffset,
+                    pinned: this.state.pinnedView ? (this.state.pinnedView === output) : undefined
                 };
                 switch (responseType) {
                     case 'TIME_GRAPH':
@@ -491,8 +526,18 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         </div>;
     }
 
+    private doHandleUnPinView() {
+        this._storedPinnedViewLayout = undefined;
+        this.setState({
+            pinnedView: undefined
+        })
+    }
+
     private doHandlePinView(payload: {output: OutputDescriptor, traceId: string}) {
         console.log('pin view signal caught');
+        this.setState({
+            pinnedView: payload.output
+        })
         const view = document.getElementById(payload.traceId + payload.output.id);
         if (view) {
             // if (payload.output.type === 'TIME_GRAPH' || payload.output.type === 'TREE_TIME_XY') {
@@ -502,23 +547,35 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
 
 
             console.log('view DOM found');
-            view.style.position = "fixed";
-            view.style.zIndex = "1000";
-            view.style.top = "90px";
+            // view.style.position = "fixed";
+            // view.style.zIndex = "1000";
+            // view.style.top = "90px";
         }
     }
 
     private generateGridLayout(): void {
         let existingTimeScaleLayouts: Array<Layout> = [];
         let existingNonTimeScaleLayouts: Array<Layout> = [];
+        let existingPinnedLayout: Layout | undefined = undefined;
         const newTimeScaleLayouts: Array<Layout> = [];
         const newNonTimeScaleLayouts: Array<Layout> = [];
 
         for (const output of this.props.outputs) {
             const curChartTimeLine = this._storedTimescaleLayout.find(layout => layout.i === output.id);
             const curChartNonTimeLine = this._storedNonTimescaleLayout.find(layout => layout.i === output.id);
-
-            if (curChartTimeLine) {
+            
+            if (output.id === this._storedPinnedViewLayout?.i) {
+                existingPinnedLayout = this._storedPinnedViewLayout;
+            } else if (this.state.pinnedView === output){
+                existingPinnedLayout = {
+                    i: output.id,
+                    x: 0,
+                    y: 1,
+                    w: 1,
+                    h: this.DEFAULT_COMPONENT_HEIGHT,
+                    resizeHandles: ['se', 's', 'sw', 'n', 'ne']
+                } as Layout;
+            } else if (curChartTimeLine) {
                 existingTimeScaleLayouts.push(curChartTimeLine);
             } else if (curChartNonTimeLine) {
                 existingNonTimeScaleLayouts.push(curChartNonTimeLine);
@@ -549,6 +606,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
 
         this._storedTimescaleLayout = existingTimeScaleLayouts;
         this._storedNonTimescaleLayout = existingNonTimeScaleLayouts;
+        this._storedPinnedViewLayout = existingPinnedLayout;
 
         // At times after layout change RGL changes y values of existing charts from 1,2,3 to 10,20,30
         this._storedTimescaleLayout.forEach((output, index) => {
