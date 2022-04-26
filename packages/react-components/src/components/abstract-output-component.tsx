@@ -73,7 +73,7 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
             data-for="tooltip-component">
             <div
                 id={this.props.traceId + this.props.outputDescriptor.id + 'handle'}
-                className='widget-handle'
+                className={this.props.pinned !== false ? 'widget-handle-with-options' : 'widget-handle'}
                 style={{ width: this.getHandleWidth(), height: this.props.style.height }}
             >
                 {this.renderTitleBar()}
@@ -92,16 +92,16 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
             <button className='remove-component-button' onClick={this.closeComponent}>
                 <FontAwesomeIcon icon={faTimes} />
             </button>
-            <div className='title-bar-label' title={outputName} onClick={() => this.setFocus()}>
-                {outputName}
-                <i id={this.props.traceId + this.props.outputDescriptor.id + 'handleSpinner'} className='fa fa-refresh fa-spin'
-                    style={{ marginTop: '5px', visibility: 'hidden'}} />
-                {this.props.pinned === undefined && <button title='Pin View' className='pin-component-button' onClick={() => this.pinView()}>
+            {this.props.pinned === undefined && <button title='Pin View' className='pin-component-button' onClick={() => this.pinView()}>
                     <FontAwesomeIcon icon={faThumbtack} />
                 </button>}
                 {this.props.pinned === true && <button title='Unpin View' className='pin-component-button' onClick={() => this.unPinView()}>
                     <FontAwesomeIcon icon={faUnlock} />
                 </button>}
+            <div className='title-bar-label' title={outputName} onClick={() => this.setFocus()}>
+                {outputName}
+                <i id={this.props.traceId + this.props.outputDescriptor.id + 'handleSpinner'} className='fa fa-refresh fa-spin'
+                    style={{ marginTop: '5px', visibility: 'hidden'}} />
             </div>
         </React.Fragment>;
     }
@@ -139,7 +139,7 @@ export abstract class AbstractOutputComponent<P extends AbstractOutputProps, S e
     abstract resultsAreEmpty(): boolean;
 
     private pinView(): void {
-        signalManager().firePinView({output: this.props.outputDescriptor, traceId: this.props.traceId});
+        signalManager().firePinView(this.props.outputDescriptor);
     }
 
     private unPinView(): void {

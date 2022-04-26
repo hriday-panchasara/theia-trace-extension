@@ -65,6 +65,8 @@ export interface PersistedState {
     unitControllerViewRange: { start: string, end: string };
     storedTimescaleLayout: Layout[];
     storedNonTimescaleLayout: Layout[];
+    pinnedView: OutputDescriptor | undefined;
+    storedPinnedViewLayout: Layout | undefined;
 }
 
 export class TraceContextComponent extends React.Component<TraceContextProps, TraceContextState> {
@@ -77,6 +79,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private readonly DEFAULT_COMPONENT_LEFT: number = 0;
     private readonly SCROLLBAR_PADDING: number = 12;
     private readonly DEFAULT_CHART_OFFSET = 200;
+    private readonly MIN_COMPONENT_HEIGHT: number = 2;
 
     private unitController: TimeGraphUnitController;
     private tooltipComponent: React.RefObject<TooltipComponent>;
@@ -100,7 +103,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     private onBackgroundThemeChange = (theme: string): void => this.doHandleBackgroundThemeChange(theme);
     private onUpdateZoom = (hasZoomedIn: boolean) => this.doHandleUpdateZoomSignal(hasZoomedIn);
     private onResetZoom = () => this.doHandleResetZoomSignal();
-    private onPinView = (payload: {output: OutputDescriptor, traceId: string}) => this.doHandlePinView(payload);
+    private onPinView = (output: OutputDescriptor) => this.doHandlePinView(output);
     private onUnPinView = () => this.doHandleUnPinView();
 
     constructor(props: TraceContextProps) {
@@ -108,6 +111,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         let traceRange = new TimeRange();
         let viewRange = new TimeRange();
         let timeSelection = undefined;
+        let curPinnedView = undefined;
         if (this.props.experiment) {
             const experiment = this.props.experiment;
             traceRange = new TimeRange(experiment.start - this.props.experiment.start, experiment.end - this.props.experiment.start, this.props.experiment.start);
@@ -117,8 +121,10 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                     currentRange: storedRange,
                     currentViewRange: storedViewRange,
                     currentTimeSelection: storedTimeSelection,
+                    pinnedView: storedPinnedView,
                     storedTimescaleLayout,
-                    storedNonTimescaleLayout
+                    storedNonTimescaleLayout,
+                    storedPinnedViewLayout
                 } = this.props.persistedState;
                 traceRange = new TimeRange(storedRange);
                 viewRange = new TimeRange(storedViewRange);
@@ -127,6 +133,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 }
                 this._storedTimescaleLayout = storedTimescaleLayout;
                 this._storedNonTimescaleLayout = storedNonTimescaleLayout;
+                curPinnedView = storedPinnedView;
+                this._storedPinnedViewLayout = storedPinnedViewLayout;
             }
         }
         this.state = {
@@ -135,6 +143,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
             currentViewRange: viewRange,
             currentTimeSelection: timeSelection,
             experiment: this.props.experiment,
+            pinnedView: curPinnedView,
             traceIndexing: ((this.props.experiment.indexingStatus === this.INDEXING_RUNNING_STATUS) || (this.props.experiment.indexingStatus === this.INDEXING_CLOSED_STATUS)),
             style: {
                 width: 0, // width will be set by resize handler
@@ -148,7 +157,6 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 lineColor: this.props.backgroundTheme === 'light' ? 0x757575 : 0xbbbbbb
             },
             backgroundTheme: this.props.backgroundTheme,
-            pinnedView: undefined
         };
         const absoluteRange = traceRange.getDuration();
         this.unitController = new TimeGraphUnitController(absoluteRange, { start: BigInt(0), end: absoluteRange });
@@ -269,11 +277,11 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         if (prevProps.outputs.length < this.props.outputs.length) {
             // added a new output - scroll to bottom
             this.scrollToBottom();
-        } else if (prevProps.outputs.length === this.props.outputs.length && 
+        } else if (prevProps.outputs.length === this.props.outputs.length &&
             prevState.pinnedView === undefined && this.state.pinnedView !== undefined) {
             // one of the existing outputs is pinned to top - scroll to top
             this.scrollToPinnedView();
-        } else if (prevProps.outputs.length === this.props.outputs.length && 
+        } else if (prevProps.outputs.length === this.props.outputs.length &&
             prevState.pinnedView !== undefined && this.state.pinnedView === undefined) {
                 // one of the existing outputs is unpinned - scroll to unpinned output
                 this.scrollToUnPinnedView(prevState.pinnedView);
@@ -410,10 +418,9 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         const nonTimeScaleCharts: Array<OutputDescriptor> = [];
 
         for (const output of this.props.outputs) {
-            if (this.state.pinnedView === output) {
+            if (this.state.pinnedView?.id === output.id) {
                 continue;
-            }
-            if (output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY') {
+            } else if (output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY') {
                 timeScaleCharts.push(output);
             } else {
                 nonTimeScaleCharts.push(output);
@@ -425,7 +432,7 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 // Syntax to use ReactGridLayout with Custom Components, while passing resized dimensions to children:
                 // https://github.com/STRML/react-grid-layout/issues/299#issuecomment-524959229
             }
-            <div style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING, visibility: (timeScaleCharts.length 
+            <div style={{ marginLeft: this.state.style.chartOffset, marginRight: this.SCROLLBAR_PADDING, visibility: (timeScaleCharts.length
                 || (this.state.pinnedView?.type === 'TIME_GRAPH' || this.state.pinnedView?.type === 'TREE_TIME_XY')) ? 'visible' : 'hidden' }}>
                 <TimeAxisComponent unitController={this.unitController} style={{ ...this.state.style, width: chartWidth }}
                     addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />
@@ -485,23 +492,25 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
                 switch (responseType) {
                     case 'TIME_GRAPH':
                         return <TimegraphOutputComponent key={output.id} {...outputProps}
-                            addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler} />;
+                            addWidgetResizeHandler={this.addWidgetResizeHandler} removeWidgetResizeHandler={this.removeWidgetResizeHandler}
+                            className={this.state.pinnedView?.id === output.id ? 'pinned-view-shadow' : ''}
+                            />;
                     case 'TREE_TIME_XY':
-                        return <XYOutputComponent key={output.id} {...outputProps} />;
+                        return <XYOutputComponent key={output.id} {...outputProps} className={this.state.pinnedView?.id === output.id ? 'pinned-view-shadow' : ''}/>;
                     case 'TABLE':
-                        return <TableOutputComponent key={output.id} {...outputProps} />;
+                        return <TableOutputComponent key={output.id} {...outputProps} className={this.state.pinnedView?.id === output.id ? 'pinned-view-shadow' : ''}/>;
                     case 'DATA_TREE':
-                        return <DataTreeOutputComponent key={output.id} {...outputProps} />;
+                        return <DataTreeOutputComponent key={output.id} {...outputProps} className={this.state.pinnedView?.id === output.id ? 'pinned-view-shadow' : ''}/>;
                     default:
-                        return <NullOutputComponent key={output.id} {...outputProps} />;
+                        return <NullOutputComponent key={output.id} {...outputProps} className={this.state.pinnedView?.id === output.id ? 'pinned-view-shadow' : ''}/>;
                 }
             })}
         </ResponsiveGridLayout>;
     }
 
     get persistedState(): PersistedState {
-        const { currentRange, currentViewRange, currentTimeSelection } = this.state;
-        const { _storedNonTimescaleLayout: storedNonTimescaleLayout, _storedTimescaleLayout: storedTimescaleLayout } = this;
+        const { currentRange, currentViewRange, currentTimeSelection, pinnedView } = this.state;
+        const { _storedNonTimescaleLayout: storedNonTimescaleLayout, _storedTimescaleLayout: storedTimescaleLayout, _storedPinnedViewLayout: storedPinnedViewLayout } = this;
         const { start: ucStart, end: ucEnd } = this.unitController.viewRange;
         return {
             outputs: this.props.outputs,
@@ -510,7 +519,9 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
             unitControllerViewRange: { start: ucStart.toString(), end: ucEnd.toString() },
             currentTimeSelection: currentTimeSelection?.toString(),
             storedNonTimescaleLayout,
-            storedTimescaleLayout
+            storedTimescaleLayout,
+            pinnedView,
+            storedPinnedViewLayout
         };
     }
 
@@ -527,30 +538,15 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     }
 
     private doHandleUnPinView() {
-        this._storedPinnedViewLayout = undefined;
         this.setState({
             pinnedView: undefined
-        })
+        });
     }
 
-    private doHandlePinView(payload: {output: OutputDescriptor, traceId: string}) {
-        console.log('pin view signal caught');
+    private doHandlePinView(output: OutputDescriptor) {
         this.setState({
-            pinnedView: payload.output
-        })
-        const view = document.getElementById(payload.traceId + payload.output.id);
-        if (view) {
-            // if (payload.output.type === 'TIME_GRAPH' || payload.output.type === 'TREE_TIME_XY') {
-
-            // }
-
-
-
-            console.log('view DOM found');
-            // view.style.position = "fixed";
-            // view.style.zIndex = "1000";
-            // view.style.top = "90px";
-        }
+            pinnedView: output
+        });
     }
 
     private generateGridLayout(): void {
@@ -563,16 +559,22 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         for (const output of this.props.outputs) {
             const curChartTimeLine = this._storedTimescaleLayout.find(layout => layout.i === output.id);
             const curChartNonTimeLine = this._storedNonTimescaleLayout.find(layout => layout.i === output.id);
-            
-            if (output.id === this._storedPinnedViewLayout?.i) {
+
+            if (this.state.pinnedView && output.id === this._storedPinnedViewLayout?.i) {
                 existingPinnedLayout = this._storedPinnedViewLayout;
-            } else if (this.state.pinnedView === output){
+            } else if (this.state.pinnedView?.id === output.id){
+                let prevLayout: Layout | undefined = undefined;
+                if (output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY') {
+                    prevLayout = this._storedTimescaleLayout.find(layout => layout.i === output.id);
+                } else {
+                    prevLayout = this._storedNonTimescaleLayout.find(layout => layout.i === output.id);
+                }
                 existingPinnedLayout = {
                     i: output.id,
                     x: 0,
                     y: 1,
                     w: 1,
-                    h: this.DEFAULT_COMPONENT_HEIGHT,
+                    h: prevLayout ? prevLayout.h : this.DEFAULT_COMPONENT_HEIGHT,
                     resizeHandles: ['se', 's', 'sw', 'n', 'ne']
                 } as Layout;
             } else if (curChartTimeLine) {
@@ -580,20 +582,24 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
             } else if (curChartNonTimeLine) {
                 existingNonTimeScaleLayouts.push(curChartNonTimeLine);
             } else if (output.type === 'TIME_GRAPH' || output.type === 'TREE_TIME_XY') {
+                const prevLayout = this._storedPinnedViewLayout?.i === output.id ? this._storedPinnedViewLayout : undefined;
                 newTimeScaleLayouts.push({
                     i: output.id,
                     x: 0,
                     y: 1,
                     w: 1,
-                    h: this.DEFAULT_COMPONENT_HEIGHT,
+                    h: prevLayout ? prevLayout.h : this.DEFAULT_COMPONENT_HEIGHT,
+                    minH: this.MIN_COMPONENT_HEIGHT,
                 });
             } else {
+                const prevLayout = this._storedPinnedViewLayout?.i === output.id ? this._storedPinnedViewLayout : undefined;
                 newNonTimeScaleLayouts.push({
                     i: output.id,
                     x: 0,
                     y: 1,
                     w: 1,
-                    h: this.DEFAULT_COMPONENT_HEIGHT,
+                    h: prevLayout ? prevLayout.h : this.DEFAULT_COMPONENT_HEIGHT,
+                    minH: this.MIN_COMPONENT_HEIGHT,
                 });
             }
         }

@@ -15,8 +15,16 @@
     display: grid;
     grid-template-rows: 25px 1fr;
 }
+.widget-handle-with-options {
+    background: var(--theia-editor-background);
+    display: grid;
+    grid-template-rows: 25px 25px 1fr;
+}
 .widget-handle :hover {
     background-color: var(--theia-list-hoverBackground); 
+}
+.pinned-view-shadow {
+    box-shadow: 0px 4px 6px 0px var(--theia-widget-shadow);
 }
 .title-bar-label {
     text-align: center;
@@ -40,7 +48,6 @@
     color: var(--theia-ui-font-color0)
 }
 .pin-component-button {
-    transform: rotate(180deg);
     background: none;
     border: none;
     cursor: pointer;
