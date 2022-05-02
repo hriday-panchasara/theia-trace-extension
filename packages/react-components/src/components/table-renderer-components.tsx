@@ -1,4 +1,4 @@
-import { faAngleDown, faAngleUp, faSearch, faSpinner, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faAngleDown, faAngleUp, faSearch, faSpinner, faTimes, faFilter } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICellRendererParams, IFloatingFilterParams } from 'ag-grid-community';
 import debounce from 'lodash.debounce';
@@ -13,6 +13,7 @@ type SearchFilterRendererProps = IFloatingFilterParams & {
     onFilterChange: (colName: string, filterValue: string) => void;
     onclickNext: () => void;
     onclickPrevious: () => void;
+    onClickFilterButton: (colName: string) => void;
     colName: string;
 };
 
@@ -93,6 +94,7 @@ export class SearchFilterRenderer extends React.Component<SearchFilterRendererPr
         this.onDownClickHandler = this.onDownClickHandler.bind(this);
         this.onUpClickHandler = this.onUpClickHandler.bind(this);
         this.onCloseClickHandler = this.onCloseClickHandler.bind(this);
+        this.onFilterClickHandler = this.onFilterClickHandler.bind(this);
         this.onKeyDownEvent = this.onKeyDownEvent.bind(this);
 
     }
@@ -119,6 +121,8 @@ export class SearchFilterRenderer extends React.Component<SearchFilterRendererPr
                         <FontAwesomeIcon className='hoverClass' icon={faTimes} style={{ marginTop: '20px' }} onClick={this.onCloseClickHandler} />
                         <FontAwesomeIcon className='hoverClass' icon={faAngleDown} style={{ marginLeft: '10px', marginTop: '20px' }} onClick={this.onDownClickHandler} />
                         <FontAwesomeIcon className='hoverClass' icon={faAngleUp} style={{ marginLeft: '10px', marginTop: '20px' }} onClick={this.onUpClickHandler} />
+                        <FontAwesomeIcon className='hoverClass' icon={faFilter} style={{ marginLeft: '10px', marginTop: '20px' }} title='Add as Filter (Ctrl + Enter)' 
+                            onClick={this.onFilterClickHandler}/>
                     </div>}
             </div>
         );
@@ -173,6 +177,11 @@ export class SearchFilterRenderer extends React.Component<SearchFilterRendererPr
 
     private onUpClickHandler() {
         this.props.onclickPrevious();
+        return;
+    }
+
+    private onFilterClickHandler() {
+        this.props.onClickFilterButton(this.props.colName);
         return;
     }
 

@@ -11,9 +11,11 @@ import { CellKeyDownEvent } from 'ag-grid-community/dist/lib/events';
 import { Line } from 'tsp-typescript-client/lib/models/table';
 import { SearchFilterRenderer, CellRenderer, LoadingRenderer } from './table-renderer-components';
 import { ResponseStatus } from 'tsp-typescript-client';
+import Chip from "@mui/material/Chip";
 
 type TableOuputState = AbstractOutputState & {
     tableColumns: ColDef[];
+    filterState: Map<string, string>;
 };
 
 type TableOutputProps = AbstractOutputProps & {
@@ -64,7 +66,8 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         super(props);
         this.state = {
             outputStatus: ResponseStatus.RUNNING,
-            tableColumns: []
+            tableColumns: [],
+            filterState: new Map<string, string>(),
         };
 
         this.frameworkComponents = {
@@ -93,32 +96,62 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         this.onKeyDown = this.onKeyDown.bind(this);
         this.searchEvents = this.searchEvents.bind(this);
         this.findMatchedEvent = this.findMatchedEvent.bind(this);
+        this.filterRows = this.filterRows.bind(this);
         this.checkFocus = this.checkFocus.bind(this);
     }
 
     renderMainArea(): React.ReactNode {
-        return <div id={this.props.traceId + this.props.outputDescriptor.id + 'focusContainer'}
-            tabIndex={-1}
-            onFocus={event=>this.checkFocus(event)}
-            className={this.props.backgroundTheme === 'light' ? 'ag-theme-balham' : 'ag-theme-balham-dark'}
-            style={{ height: this.props.style.height, width: this.props.outputWidth }}>
-            <AgGridReact
-                columnDefs={this.columnArray}
-                rowModelType='infinite'
-                cacheBlockSize={this.props.cacheBlockSize}
-                maxBlocksInCache={this.props.maxBlocksInCache}
-                blockLoadDebounceMillis={this.props.blockLoadDebounce}
-                debug={this.debugMode}
-                onGridReady={this.onGridReady}
-                onCellClicked={this.onEventClick}
-                rowSelection='multiple'
-                onModelUpdated={this.onModelUpdated}
-                onCellKeyDown={this.onKeyDown}
-                frameworkComponents={this.frameworkComponents}
-                enableBrowserTooltips={true}
-            >
-            </AgGridReact>
+        return <div style={{ height: this.props.style.height, width: this.props.outputWidth, display: 'flex', flexDirection: 'column' }}>
+                {this.state.filterState.size > 0 && <div>{this.renderFiltersGroup()}</div>}
+                <div
+                    id={this.props.traceId + this.props.outputDescriptor.id + 'focusContainer'}
+                    tabIndex={-1}
+                    onFocus={event=>this.checkFocus(event)}
+                    className={this.props.backgroundTheme === 'light' ? 'ag-theme-balham' : 'ag-theme-balham-dark'}
+                    style={{height: '100%', width: '100%'}}
+                >
+                    <AgGridReact
+                        columnDefs={this.columnArray}
+                        rowModelType='infinite'
+                        cacheBlockSize={this.props.cacheBlockSize}
+                        maxBlocksInCache={this.props.maxBlocksInCache}
+                        blockLoadDebounceMillis={this.props.blockLoadDebounce}
+                        debug={this.debugMode}
+                        onGridReady={this.onGridReady}
+                        onCellClicked={this.onEventClick}
+                        rowSelection='multiple'
+                        onModelUpdated={this.onModelUpdated}
+                        onCellKeyDown={this.onKeyDown}
+                        frameworkComponents={this.frameworkComponents}
+                        enableBrowserTooltips={true}
+                    >
+                    </AgGridReact>
+                </div>
         </div>;
+    }
+
+    private renderFiltersGroup() {
+        console.log('render filter groups called');
+        console.log(this.state.filterState.size);
+        
+        return <div style={{marginBottom: '3px'}}>
+            {Array.from(this.state.filterState.entries()).map((entry) => {
+                const [key, value] = entry;
+                console.log(this.columnApi?.getColumn(key).getColDef().headerName); //column.getColDef().headerName
+                return (<Chip key={key} label={this.columnApi?.getColumn(key).getColDef().headerName + ' matches "' + value +'"'} onDelete={()=>this.handleFilterDelete(key)}/>);
+            })}
+        </div>
+    }
+
+    private handleFilterDelete(key: string): void {
+        console.log('you have clicked on delete item');
+        console.log(key);
+        
+        const curFilters = this.state.filterState;
+        curFilters.delete(key);
+        this.setState({
+            filterState: curFilters,
+        });
     }
 
     resultsAreEmpty(): boolean {
@@ -354,6 +387,7 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
                     onFilterChange: this.searchEvents,
                     onclickNext: () => this.findMatchedEvent(Direction.NEXT),
                     onclickPrevious: () => this.findMatchedEvent(Direction.PREVIOUS),
+                    onClickFilterButton: this.filterRows,
                     colName: columnHeader.id.toString()
                 },
                 icons: {
@@ -515,6 +549,18 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
             this.columnsPacked = true;
         }
     };
+
+    private filterRows(colName: string) {
+        console.log('filterRows called');
+        if (this.filterModel.has(colName)) {
+            const curFilters = this.state.filterState;
+            curFilters.set(colName, this.filterModel.get(colName)!);
+            console.log('set state called');
+            this.setState({
+                filterState: curFilters,
+            });
+        }
+    }
 
     private searchEvents(colName: string, filterValue: string) {
         if (filterValue === '') {
