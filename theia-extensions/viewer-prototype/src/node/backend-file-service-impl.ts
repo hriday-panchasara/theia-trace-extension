@@ -74,13 +74,25 @@ export class BackendFileServiceImpl implements BackendFileService, BackendApplic
     }
 
     writeToFile(data: string): void {
+        // Write the data to the stream
         this.fileStream.write(data);
+
+        this.fileStream.on('error', (error) => {
+            console.log(error);
+            // fs.unlink(fileName, (err) => {
+            //     console.log(err);
+            // });
+        });
     }
 
     configure(app: Application): void {
         app.get('/trace-viewer/download/csv/:fileName', async (req, res) => {
             const { fileName } = req.params;
             res.download(fileName as string);
+            // fs.unlinkSync(fileName);
+            // fs.unlink(fileName, (err) => {
+            //     console.log(err);
+            // });
         });
     }
 }

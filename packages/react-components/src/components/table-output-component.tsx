@@ -723,7 +723,6 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         const outputId = this.props.outputDescriptor.id;
         let fetchIndex = 0;
         let totalLinesToFetch = this.gridApi.getDisplayedRowCount();
-        const linesArray = new Array<Line>();
         const bufferSize = 50000;
         const columnsIds: Array<number> = [];
 
@@ -733,6 +732,8 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         // Fetch column headers
         const colHeaderRow: string[] = [];
 
+        signalManager().fireFileCreateSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv'});
+
         const columns = this.columnApi?.getAllColumns();
         columns.forEach((column, index) => {
             if (column.isVisible()) {
@@ -740,7 +741,7 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
                 columnsIds.push(index);
             }
         });
-        csv_data.push(colHeaderRow.join(','));
+        signalManager().fireCSVRowExportSignal(colHeaderRow.join(','));
 
         if (option === 'selection') {
             if (this.enableIndexSelection && this.selectStartIndex !== -1 && this.selectEndIndex !==-1) {
@@ -769,7 +770,14 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
 
         let fetchLinesRemainder = totalLinesToFetch;
 
-        signalManager().fireFileCreateSignal({fileName: this.props.traceName ?? 'export'});
+        // // open file picker
+        // [fileHandle] = await window.showOpenFilePicker();
+
+        // if (fileHandle.kind === 'file') {
+        //     // run file code
+        // } else if (fileHandle.kind === 'directory') {
+        //     // run directory code
+        // }
 
         while (fetchLinesRemainder > 0 && this.mainOutputContainer.current) {
             let curLinesToFetch = bufferSize;
@@ -802,8 +810,6 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
                     const id = this.showIndexColumn ? columnIds[index] + 1 : columnIds[index];
                     obj[id] = cell.content;
                 });
-
-                linesArray.push(obj);
             });
 
             for (let i=0;i<lines.length;i++) {
@@ -837,9 +843,9 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         // const csvBlob = URL.createObjectURL(new Blob([tableString], { type: 'text/csv' }));
 
         const link = document.createElement('a');
-        link.setAttribute('href', '/trace-viewer/download/csv' + (this.props.traceName ?? 'export'));
+        link.setAttribute('href', '/trace-viewer/download/csv/' + (this.props.traceName + '.csv' ?? 'export.csv'));
 
-        link.setAttribute('download', this.props.traceName ?? 'export');
+        // link.setAttribute('download', this.props.traceName ?? 'export');
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
