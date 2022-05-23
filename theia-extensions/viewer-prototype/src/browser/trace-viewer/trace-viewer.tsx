@@ -65,8 +65,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     private onExperimentSelected = (experiment: Experiment): void => this.doHandleExperimentSelectedSignal(experiment);
     private onCloseExperiment = (UUID: string): void => this.doHandleCloseExperimentSignal(UUID);
     private onMarkerCategoryClosedSignal = (payload: { traceViewerId: string, markerCategory: string }) => this.doHandleMarkerCategoryClosedSignal(payload);
-    private onCSVRowExportSignal = (row: string) => this.doHandleCSVRowExportSignal(row);
-    private onFileCreatedSignal = (payload: { fileName: string, path?: string }) => this.doHandleFileCreatedSignal(payload);
+    private onFileOperationSignal = (payload: { fileName: string, flag: string, data?: string, path?: string }) => this.doHandleFileOperationSignal(payload);
 
     @inject(TraceViewerWidgetOptions) protected readonly options: TraceViewerWidgetOptions;
     @inject(TspClientProvider) protected tspClientProvider: TspClientProvider;
@@ -128,8 +127,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
         signalManager().on(Signals.EXPERIMENT_SELECTED, this.onExperimentSelected);
         signalManager().on(Signals.CLOSE_TRACEVIEWERTAB, this.onCloseExperiment);
         signalManager().on(Signals.MARKER_CATEGORY_CLOSED, this.onMarkerCategoryClosedSignal);
-        signalManager().on(Signals.CSV_ROW_EXPORT, this.onCSVRowExportSignal);
-        signalManager().on(Signals.FILE_CREATED, this.onFileCreatedSignal);
+        signalManager().on(Signals.FILE_OPERATION, this.onFileOperationSignal);
     }
 
     protected updateBackgroundTheme(): void {
@@ -142,8 +140,8 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
         signalManager().off(Signals.OUTPUT_ADDED, this.onOutputAdded);
         signalManager().off(Signals.EXPERIMENT_SELECTED, this.onExperimentSelected);
         signalManager().off(Signals.CLOSE_TRACEVIEWERTAB, this.onCloseExperiment);
-        signalManager().off(Signals.CSV_ROW_EXPORT, this.onCSVRowExportSignal);
-        signalManager().off(Signals.FILE_CREATED, this.onFileCreatedSignal);
+        signalManager().on(Signals.MARKER_CATEGORY_CLOSED, this.onMarkerCategoryClosedSignal);
+        signalManager().off(Signals.FILE_OPERATION, this.onFileOperationSignal);
     }
 
     async initialize(): Promise<void> {
@@ -310,6 +308,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     }
 
     protected doHandleCloseExperimentSignal(UUID: string): void {
+        console.log('on close exp called');
         this.shell.closeWidget(UUID);
     }
 
@@ -379,6 +378,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     }
 
     protected doHandleExperimentSelectedSignal(experiment: Experiment): void {
+        console.log('do handle exp signal caught');
         if (this.openedExperiment && this.openedExperiment.UUID === experiment.UUID) {
             this.shell.activateWidget(this.openedExperiment.UUID);
         }
@@ -392,13 +392,9 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
         }
     }
 
-    private doHandleCSVRowExportSignal(row: string): void {
-        this.backendFileService.writeToFile(row);
-        return;
-    }
-
-    private doHandleFileCreatedSignal(payload: { fileName: string, path?: string }): void {
-        this.backendFileService.createFile(payload.fileName);
+    private doHandleFileOperationSignal(payload: { fileName: string, flag: string, data?: string, path?: string }): void {
+        console.log('call file operation: ' + payload.flag);
+        this.backendFileService.fileOperation(payload);
         return;
     }
 

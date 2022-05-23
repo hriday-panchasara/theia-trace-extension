@@ -23,8 +23,7 @@ export declare interface SignalManager {
     fireMarkerSetsFetchedSignal(): void;
     fireMarkerCategoryClosedSignal(payload: { traceViewerId: string, markerCategory: string }): void;
     fireTraceServerStartedSignal(): void;
-    fireCSVRowExportSignal(row: string): void;
-    fireFileCreateSignal(payload: { fileName: string, path?: string }): void;
+    fireFileOperationSignal(payload: { fileName: string, flag: string, data?: string, path?: string }): void;
 }
 
 export const Signals = {
@@ -48,8 +47,7 @@ export const Signals = {
     MARKERSETS_FETCHED: 'markersets fetched',
     MARKER_CATEGORY_CLOSED: 'marker category closed',
     TRACE_SERVER_STARTED: 'trace server started',
-    CSV_ROW_EXPORT: 'CSV row exported',
-    FILE_CREATED: 'File Created'
+    FILE_OPERATION: 'file operation'
 };
 
 export class SignalManager extends EventEmitter implements SignalManager {
@@ -110,11 +108,8 @@ export class SignalManager extends EventEmitter implements SignalManager {
     fireTraceServerStartedSignal(): void {
         this.emit(Signals.TRACE_SERVER_STARTED);
     }
-    fireCSVRowExportSignal(row: string): void{
-        this.emit(Signals.CSV_ROW_EXPORT, row);
-    }
-    fireFileCreateSignal(payload: { fileName: string, path?: string }): void {
-        this.emit(Signals.FILE_CREATED, payload);
+    fireFileOperationSignal(payload: { fileName: string, flag: string, data?: string, path?: string }): void {
+        this.emit(Signals.FILE_OPERATION, payload);
     }
 }
 

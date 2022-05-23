@@ -712,6 +712,7 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
     }
 
     async exportOutput(option: string): Promise<void> {
+        console.log('export output called');
         if (!this.gridApi || !this.columnApi) {
             return;
         }
@@ -732,7 +733,8 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         // Fetch column headers
         const colHeaderRow: string[] = [];
 
-        signalManager().fireFileCreateSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv'});
+        console.log('fire create');
+        signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'create'});
 
         const columns = this.columnApi?.getAllColumns();
         columns.forEach((column, index) => {
@@ -741,7 +743,8 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
                 columnsIds.push(index);
             }
         });
-        signalManager().fireCSVRowExportSignal(colHeaderRow.join(','));
+        console.log('fire append header');
+        signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'append', data: colHeaderRow.join(',') + '\n'});
 
         if (option === 'selection') {
             if (this.enableIndexSelection && this.selectStartIndex !== -1 && this.selectEndIndex !==-1) {
@@ -826,7 +829,8 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
                     }
                 }
                 // Combine each column value with comma
-                signalManager().fireCSVRowExportSignal(csvrow.join(','));
+                console.log('fire append row');
+                signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'append', data: csvrow.join(',') + '\n'});
                 // csv_data.push(csvrow.join(','));
             }
             fetchIndex += curLinesToFetch;
@@ -838,28 +842,30 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
 
         // combine each row data with new line character
         // const tableString = csv_data.join('\n');
-        signalManager().fireCSVRowExportSignal('\n');
-
-        // const csvBlob = URL.createObjectURL(new Blob([tableString], { type: 'text/csv' }));
+        // console.log('fire close filesream');
+        // signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'close'});
 
         const link = document.createElement('a');
         link.setAttribute('href', '/trace-viewer/download/csv/' + (this.props.traceName + '.csv' ?? 'export.csv'));
 
-        // link.setAttribute('download', this.props.traceName ?? 'export');
+        link.setAttribute('download', this.props.traceName ?? 'export');
         link.style.display = 'none';
+        console.log('call download');
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
+        signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'delete'});
     }
 
     protected showAdditionalOptions(): React.ReactNode {
         return <React.Fragment>
             <ul>
-                <li className='drop-down-list-item' key={0} onClick={() => this.exportOutput('table')}>Export table to csv</li>
+                <li className='drop-down-list-item' onClick={() => this.exportOutput('table')}>Export table to csv</li>
                 { this.selectStartIndex !== -1 &&
-                    <li className='drop-down-list-item' key={1} onClick={() => this.exportOutput('selection')}>Export selected rows to csv</li>
+                    <li className='drop-down-list-item' onClick={() => this.exportOutput('selection')}>Export selected rows to csv</li>
                 }
-                <li className='drop-down-list-item' key={0} onClick={() => {
+                <li className='drop-down-list-item' onClick={() => {
                     this.setState({showToggleColumns: !this.state.showToggleColumns});
                 }}>Toggle Columns</li>
             </ul>

@@ -1,16 +1,21 @@
 import { injectable } from 'inversify';
 import fs = require('fs');
+import util = require('util');
 import { Dirent } from 'fs';
 import { Path } from '@theia/core/lib/common/path';
 import { CancellationToken } from '@theia/core';
 import { BackendFileService } from '../common/backend-file-service';
 import { BackendApplicationContribution, FileUri } from '@theia/core/lib/node';
 import { Application } from '@theia/core/shared/express';
+// import { CsvFormatterStream, Row } from '@fast-csv/format'
 
 @injectable()
 export class BackendFileServiceImpl implements BackendFileService, BackendApplicationContribution {
 
+    // @ts-ignore
     private fileStream: fs.WriteStream;
+    // private stream: CsvFormatterStream<Row, Row>;
+    private appendFile = util.promisify(fs.appendFile);
 
     async findTraces(path: string, cancellationToken: CancellationToken): Promise<string[]> {
         /*
@@ -69,26 +74,72 @@ export class BackendFileServiceImpl implements BackendFileService, BackendApplic
         }
     }
 
-    createFile(fileName: string): void {
-        this.fileStream = fs.createWriteStream(fileName, {flags: 'a+'});
-    }
+    // createFile(fileName: string): void {
+    //     this.fileStream = fs.createWriteStream(fileName, {flags: 'a+'});
+    // }
 
-    writeToFile(data: string): void {
-        // Write the data to the stream
-        this.fileStream.write(data);
+    // async writeToFile(data: string): Promise<void> {
+    //     if (!this.fileStream.write(data)) {
+    //         return new Promise((resolve, reject) => {
+    //             this.fileStream.once('drain', () => {resolve})
+    //             // Will pause every until `drain` is emitted
+    //             // await new Promise(resolve => file.once('drain', resolve));
+    //         });
+    //     } else {
+    //         return Promise.resolve();
+    //     }
+    // }
 
-        this.fileStream.on('error', (error) => {
-            console.log(error);
-            // fs.unlink(fileName, (err) => {
-            //     console.log(err);
-            // });
-        });
+    async fileOperation(payload: { fileName: string, flag: string, data?: string, path?: string }): Promise<void> {
+        // Attempt #2
+        
+        if (payload.flag === 'create') {
+            // Attempt #1
+            // this.fileStream = fs.createWriteStream(payload.fileName);
+            
+            // Attempt #3
+            // this.stream = format();
+            // this.stream.pipe(this.fileStream);
+        } else if (payload.flag === 'append' && payload.data !== undefined) {
+            // Attempt #1
+            // if (!this.fileStream.write(payload.data)) {
+            //         // this.fileStream.once('drain', () => {resolve})
+            //         // Will pause every until `drain` is emitted
+            //         await new Promise(resolve => this.fileStream.once('drain', resolve));
+            // }
+            // this.fileStream.write(payload.data)
+
+            // Attempt #2
+            // console.log('append file called');
+            // Asynchronously append data to a file, creating the file if it does not exist
+            await this.appendFile(payload.fileName, payload.data);
+
+            // Attempt #3
+            // this.stream.write(payload.data);
+        } else if (payload.flag === 'close') {
+            // this.fileStream.end();
+
+            //Attempt #3
+            // this.stream.end();
+        } else if (payload.flag === 'delete') {
+            fs.unlink(payload.fileName, (err) => {
+                console.log(err);
+            })
+        }
     }
 
     configure(app: Application): void {
         app.get('/trace-viewer/download/csv/:fileName', async (req, res) => {
             const { fileName } = req.params;
-            res.download(fileName as string);
+            // Access to __dirname
+            res.download(fileName as string, (err) => {
+                if (err) {
+                    res.send({
+                        eror: err,
+                        msg: "Problem downloading the file"
+                    })
+                }
+            });
             // fs.unlinkSync(fileName);
             // fs.unlink(fileName, (err) => {
             //     console.log(err);
