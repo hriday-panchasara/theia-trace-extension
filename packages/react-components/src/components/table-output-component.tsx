@@ -727,9 +727,6 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         const bufferSize = 50000;
         const columnsIds: Array<number> = [];
 
-        // Convert to csv
-        const csv_data = [];
-
         // Fetch column headers
         const colHeaderRow: string[] = [];
 
@@ -831,7 +828,6 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
                 // Combine each column value with comma
                 console.log('fire append row');
                 signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'append', data: csvrow.join(',') + '\n'});
-                // csv_data.push(csvrow.join(','));
             }
             fetchIndex += curLinesToFetch;
         }
@@ -840,8 +836,6 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
             return;
         }
 
-        // combine each row data with new line character
-        // const tableString = csv_data.join('\n');
         // console.log('fire close filesream');
         // signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'close'});
 

@@ -12,7 +12,6 @@ import { Application } from '@theia/core/shared/express';
 @injectable()
 export class BackendFileServiceImpl implements BackendFileService, BackendApplicationContribution {
 
-    // @ts-ignore
     private fileStream: fs.WriteStream;
     // private stream: CsvFormatterStream<Row, Row>;
     private appendFile = util.promisify(fs.appendFile);
@@ -92,11 +91,11 @@ export class BackendFileServiceImpl implements BackendFileService, BackendApplic
 
     async fileOperation(payload: { fileName: string, flag: string, data?: string, path?: string }): Promise<void> {
         // Attempt #2
-        
+
         if (payload.flag === 'create') {
             // Attempt #1
             this.fileStream = fs.createWriteStream(payload.fileName);
-            
+
             // Attempt #3
             // this.stream = format();
             // this.stream.pipe(this.fileStream);
@@ -107,7 +106,7 @@ export class BackendFileServiceImpl implements BackendFileService, BackendApplic
             //         // Will pause every until `drain` is emitted
             //         await new Promise(resolve => this.fileStream.once('drain', resolve));
             // }
-            this.fileStream.write(payload.data)
+            this.fileStream.write(payload.data);
 
             // Attempt #2
             // console.log('append file called');
@@ -117,14 +116,13 @@ export class BackendFileServiceImpl implements BackendFileService, BackendApplic
             // Attempt #3
             // this.stream.write(payload.data);
         } else if (payload.flag === 'close') {
-            // this.fileStream.end();
-
-            //Attempt #3
+            // Attempt #3
             // this.stream.end();
+            this.fileStream.end();
         } else if (payload.flag === 'delete') {
-            fs.unlink(payload.fileName, (err) => {
+            fs.unlink(payload.fileName, err => {
                 console.log(err);
-            })
+            });
         }
     }
 
@@ -132,12 +130,12 @@ export class BackendFileServiceImpl implements BackendFileService, BackendApplic
         app.get('/trace-viewer/download/csv/:fileName', async (req, res) => {
             const { fileName } = req.params;
             // Access to __dirname
-            res.download(fileName as string, (err) => {
+            res.download(fileName as string, err => {
                 if (err) {
                     res.send({
                         eror: err,
-                        msg: "Problem downloading the file"
-                    })
+                        msg: 'Problem downloading the file'
+                    });
                 }
             });
             // fs.unlinkSync(fileName);
