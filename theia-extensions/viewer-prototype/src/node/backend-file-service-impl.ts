@@ -95,7 +95,7 @@ export class BackendFileServiceImpl implements BackendFileService, BackendApplic
         
         if (payload.flag === 'create') {
             // Attempt #1
-            // this.fileStream = fs.createWriteStream(payload.fileName);
+            this.fileStream = fs.createWriteStream(payload.fileName);
             
             // Attempt #3
             // this.stream = format();
@@ -107,7 +107,7 @@ export class BackendFileServiceImpl implements BackendFileService, BackendApplic
             //         // Will pause every until `drain` is emitted
             //         await new Promise(resolve => this.fileStream.once('drain', resolve));
             // }
-            // this.fileStream.write(payload.data)
+            this.fileStream.write(payload.data)
 
             // Attempt #2
             // console.log('append file called');

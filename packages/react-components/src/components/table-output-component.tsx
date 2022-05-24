@@ -845,17 +845,15 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
         // console.log('fire close filesream');
         // signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'close'});
 
-        const link = document.createElement('a');
-        link.setAttribute('href', '/trace-viewer/download/csv/' + (this.props.traceName + '.csv' ?? 'export.csv'));
+        // const link = document.createElement('a');
+        // link.setAttribute('href', '/trace-viewer/download/csv/' + (this.props.traceName + '.csv' ?? 'export.csv'));
+        // link.style.display = 'none';
+        // console.log('call download');
+        // document.body.appendChild(link);
+        // link.click();
+        // document.body.removeChild(link);
 
-        link.setAttribute('download', this.props.traceName ?? 'export');
-        link.style.display = 'none';
-        console.log('call download');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'delete'});
+        // signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'delete'});
     }
 
     protected showAdditionalOptions(): React.ReactNode {
