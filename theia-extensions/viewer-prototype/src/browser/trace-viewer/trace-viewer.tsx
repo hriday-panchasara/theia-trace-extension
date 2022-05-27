@@ -65,7 +65,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     private onExperimentSelected = (experiment: Experiment): void => this.doHandleExperimentSelectedSignal(experiment);
     private onCloseExperiment = (UUID: string): void => this.doHandleCloseExperimentSignal(UUID);
     private onMarkerCategoryClosedSignal = (payload: { traceViewerId: string, markerCategory: string }) => this.doHandleMarkerCategoryClosedSignal(payload);
-    private onFileOperationSignal = (payload: { fileName: string, flag: string, data?: string, path?: string }) => this.doHandleFileOperationSignal(payload);
+    private onFileOperationSignal = (payload: { fileName: string, flag: string, data?: string, path?: string, done: () => void }) => this.doHandleFileOperationSignal(payload);
 
     @inject(TraceViewerWidgetOptions) protected readonly options: TraceViewerWidgetOptions;
     @inject(TspClientProvider) protected tspClientProvider: TspClientProvider;
@@ -308,7 +308,6 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     }
 
     protected doHandleCloseExperimentSignal(UUID: string): void {
-        console.log('on close exp called');
         this.shell.closeWidget(UUID);
     }
 
@@ -378,7 +377,6 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     }
 
     protected doHandleExperimentSelectedSignal(experiment: Experiment): void {
-        console.log('do handle exp signal caught');
         if (this.openedExperiment && this.openedExperiment.UUID === experiment.UUID) {
             this.shell.activateWidget(this.openedExperiment.UUID);
         }
@@ -392,10 +390,13 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
         }
     }
 
-    private doHandleFileOperationSignal(payload: { fileName: string, flag: string, data?: string, path?: string }): void {
-        console.log('call file operation: ' + payload.flag);
-        this.backendFileService.fileOperation(payload);
-        return;
+    private async doHandleFileOperationSignal(payload: { fileName: string, flag: string, data?: string, path?: string, done: (value: boolean) => void }): Promise<void> {
+        try {
+        await this.backendFileService.fileOperation(payload);
+        payload.done(true);
+    } catch {
+        payload.done(false);
+        }
     }
 
     private addMarkerSets(markerSets: MarkerSet[]) {

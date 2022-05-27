@@ -5,5 +5,5 @@ export const BackendFileService = Symbol('BackendFileService');
 
 export interface BackendFileService {
     findTraces(uri: string, cancellationToken: CancellationToken): Promise<string[]>;
-    fileOperation(payload: { fileName: string, flag: string, data?: string, path?: string }): Promise<void>;
+    fileOperation(payload: { fileName: string, flag: string, data?: string, path?: string }): Promise<boolean>;
 }

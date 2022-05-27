@@ -4,13 +4,14 @@ import * as React from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, IDatasource, GridReadyEvent, CellClickedEvent, GridApi, ColumnApi, Column, RowNode } from 'ag-grid-community';
 import { QueryHelper } from 'tsp-typescript-client/lib/models/query/query-helper';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, join } from 'lodash';
 import { signalManager } from 'traceviewer-base/lib/signals/signal-manager';
 import { TimelineChart } from 'timeline-chart/lib/time-graph-model';
 import { CellKeyDownEvent } from 'ag-grid-community/dist/lib/events';
 import { Line } from 'tsp-typescript-client/lib/models/table';
 import { SearchFilterRenderer, CellRenderer, LoadingRenderer } from './table-renderer-components';
 import { ResponseStatus } from 'tsp-typescript-client';
+import { csvParseRows } from 'd3';
 
 type TableOuputState = AbstractOutputState & {
     tableColumns: ColDef[];
@@ -24,6 +25,7 @@ type TableOutputProps = AbstractOutputProps & {
     blockLoadDebounce?: number;
     tableHeight?: string;
     tableWidth?: string;
+    deleteFile?: (fileName: string) => void
 };
 
 enum Direction {
@@ -712,7 +714,6 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
     }
 
     async exportOutput(option: string): Promise<void> {
-        console.log('export output called');
         if (!this.gridApi || !this.columnApi) {
             return;
         }
@@ -729,19 +730,6 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
 
         // Fetch column headers
         const colHeaderRow: string[] = [];
-
-        console.log('fire create');
-        signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'create'});
-
-        const columns = this.columnApi?.getAllColumns();
-        columns.forEach((column, index) => {
-            if (column.isVisible()) {
-                colHeaderRow.push(column.getColDef().headerName ?? 'no header');
-                columnsIds.push(index);
-            }
-        });
-        console.log('fire append header');
-        signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'append', data: colHeaderRow.join(',') + '\n'});
 
         if (option === 'selection') {
             if (this.enableIndexSelection && this.selectStartIndex !== -1 && this.selectEndIndex !==-1) {
@@ -770,84 +758,110 @@ export class TableOutputComponent extends AbstractOutputComponent<TableOutputPro
 
         let fetchLinesRemainder = totalLinesToFetch;
 
-        // // open file picker
-        // [fileHandle] = await window.showOpenFilePicker();
+        let csv = '';
 
-        // if (fileHandle.kind === 'file') {
-        //     // run file code
-        // } else if (fileHandle.kind === 'directory') {
-        //     // run directory code
-        // }
+        const allCols = this.columnIds;
 
-        while (fetchLinesRemainder > 0 && this.mainOutputContainer.current) {
-            let curLinesToFetch = bufferSize;
-
-            if (fetchLinesRemainder > bufferSize) {
-                fetchLinesRemainder-=bufferSize;
-            } else {
-                curLinesToFetch = fetchLinesRemainder;
-                fetchLinesRemainder = 0;
-            }
-
-            const tspClientResponse = await tspClient.fetchTableLines(traceUUID, outputId, QueryHelper.tableQuery(this.columnIds, fetchIndex, curLinesToFetch,
-                { [QueryHelper.REQUESTED_TABLE_COLUMN_IDS_KEY]: columnsIds }));
-            const lineResponse = tspClientResponse.getModel();
-            if (!tspClientResponse.isOk() || !lineResponse) {
-                return;
-            }
-            const model = lineResponse.model;
-            const lines = model.lines;
-            lines.forEach(line => {
-                const obj: any = {};
-                const cells = line.cells;
-                const columnIds = model.columnIds;
-
-                if (this.showIndexColumn) {
-                    obj[0] = line.index.toString();
+        async function queryNext(): Promise<boolean> {
+            csv = '';
+            if (fetchLinesRemainder > 0) {
+                let curLinesToFetch = bufferSize;
+    
+                if (fetchLinesRemainder > bufferSize) {
+                    fetchLinesRemainder-=bufferSize;
+                } else {
+                    curLinesToFetch = fetchLinesRemainder;
+                    fetchLinesRemainder = 0;
                 }
-
-                cells.forEach((cell, index) => {
-                    const id = this.showIndexColumn ? columnIds[index] + 1 : columnIds[index];
-                    obj[id] = cell.content;
+    
+                const tspClientResponse = await tspClient.fetchTableLines(traceUUID, outputId, QueryHelper.tableQuery(allCols, fetchIndex, curLinesToFetch,
+                    { [QueryHelper.REQUESTED_TABLE_COLUMN_IDS_KEY]: columnsIds }));
+                const lineResponse = tspClientResponse.getModel();
+                if (!tspClientResponse.isOk() || !lineResponse) {
+                    return false;
+                }
+                const model = lineResponse.model;
+                const lines = model.lines;
+                lines.forEach(line => {
+                    const obj: any = {};
+                    const cells = line.cells;
+                    const columnIds = model.columnIds;
+    
+                    cells.forEach((cell, index) => {
+                        const id = columnIds[index];
+                        obj[id] = cell.content;
+                    });
                 });
-            });
-
-            for (let i=0;i<lines.length;i++) {
-                // Stores each csv row data
-                const csvrow: Array<string> = [];
-                for (let j=0;j<lines[i].cells.length;j++) {
-                    // Get the text data of each cell of
-                    // a row and push it to csvrow
-                    const cellContent = lines[i].cells[j].content;
-                    if (cellContent.includes(',')) {
-                        csvrow.push('"' + cellContent + '"');
-                    } else {
-                        csvrow.push(cellContent);
+    
+                for (let i=0;i<lines.length;i++) {
+                    // Stores each csv row data
+                    const csvrow: Array<string> = [];
+                    for (let j=0;j<lines[i].cells.length;j++) {
+                        // Get the text data of each cell of
+                        // a row and push it to csvrow
+                        const cellContent = lines[i].cells[j].content;
+                        if (cellContent.includes(',')) {
+                            csvrow.push('"' + cellContent + '"');
+                        } else {
+                            csvrow.push(cellContent);
+                        }
                     }
+                    csv+=csvrow.join(',') + '\n';
                 }
-                // Combine each column value with comma
-                console.log('fire append row');
-                signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'append', data: csvrow.join(',') + '\n'});
+                fetchIndex += curLinesToFetch;
+
+                return false;
             }
-            fetchIndex += curLinesToFetch;
+            return true;
         }
 
-        if (!this.mainOutputContainer.current) {
-            return;
-        }
-
-        // console.log('fire close filesream');
-        // signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'close'});
+        const abortController = new AbortController();
+        // abortController.abort();
+        await fetch(`/trace-viewer/upload/csv/${encodeURIComponent(this.props.traceName + '.csv' ?? 'export.csv')}`, {
+            headers: { 'Content-Type': 'text/csv' },
+            signal: abortController.signal,
+            method: 'post',
+            body: new ReadableStream({
+                start: controller => {
+                    this.columnApi!.getAllColumns()?.forEach((column, index) => {
+                        if (column.isVisible()) {
+                            colHeaderRow.push(column.getColDef().headerName ?? 'no header');
+                            columnsIds.push(index);
+                        }
+                    });
+                    controller.enqueue(colHeaderRow.join(',') + '\n');
+                },
+                // pull: async controller => {
+                //     const { desiredSize } = controller;
+                //     let done: boolean = false;
+                //     if (csv.length < desiredSize!) {
+                //         done = await queryNext();
+                //     }
+                //     const chunk = csv.substring(0, desiredSize!);
+                //     csv = csv.substring(desiredSize!);
+                //     if (done && csv.length === 0) {
+                //         controller.close();
+                //     } 
+                //     else {
+                //         controller.enqueue(chunk);
+                //     }
+                // },
+                cancel: controller => {
+                    // todo
+                }
+            })
+        });
 
         // const link = document.createElement('a');
         // link.setAttribute('href', '/trace-viewer/download/csv/' + (this.props.traceName + '.csv' ?? 'export.csv'));
         // link.style.display = 'none';
-        // console.log('call download');
         // document.body.appendChild(link);
         // link.click();
         // document.body.removeChild(link);
 
         // signalManager().fireFileOperationSignal({fileName: this.props.traceName + '.csv' ?? 'export.csv', flag: 'delete'});
+        // const fileName = this.props.traceName + '.csv' ?? 'export.csv';
+        // this.props.deleteFile?.(fileName);
     }
 
     protected showAdditionalOptions(): React.ReactNode {

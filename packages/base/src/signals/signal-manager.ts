@@ -23,7 +23,7 @@ export declare interface SignalManager {
     fireMarkerSetsFetchedSignal(): void;
     fireMarkerCategoryClosedSignal(payload: { traceViewerId: string, markerCategory: string }): void;
     fireTraceServerStartedSignal(): void;
-    fireFileOperationSignal(payload: { fileName: string, flag: string, data?: string, path?: string }): void;
+    fireFileOperationSignal(payload: { fileName: string, flag: string, data?: string, path?: string, done: (value: boolean) => void }): void;
 }
 
 export const Signals = {
@@ -108,7 +108,9 @@ export class SignalManager extends EventEmitter implements SignalManager {
     fireTraceServerStartedSignal(): void {
         this.emit(Signals.TRACE_SERVER_STARTED);
     }
-    fireFileOperationSignal(payload: { fileName: string, flag: string, data?: string, path?: string }): void {
+    // done function as a payload param
+    // call done once 
+    fireFileOperationSignal(payload: { fileName: string, flag: string, data?: string, path?: string, done: (value: boolean) => void }): void {
         this.emit(Signals.FILE_OPERATION, payload);
     }
 }
