@@ -175,7 +175,7 @@ export class TspDataProvider {
             if (timeGraphRow) {
                 newTimeGraphRows.push(timeGraphRow);
             } else {
-                const emptyRow: TimeGraphRow = { states: [{ start: BigInt(0), end: BigInt(0), label: '', tags: 0 }], entryId: id };
+                const emptyRow: TimeGraphRow = { states: [{ start: BigInt(0), dur: BigInt(0), label: '', tags: 0 }], entryId: id };
                 newTimeGraphRows.push(emptyRow);
             }
         });
@@ -205,7 +205,7 @@ export class TspDataProvider {
         let prevPossibleState = entry.start;
         let nextPossibleState = entry.end;
         row.states.forEach((state: TimeGraphState, idx: number) => {
-            const end = state.end - chartStart;
+            const end = (state.start + state.dur) - chartStart;
             states.push({
                 id: row.entryId + '-' + idx,
                 label: state.label,
@@ -222,7 +222,7 @@ export class TspDataProvider {
                 prevPossibleState = state.start - chartStart;
             }
             if (idx === row.states.length - 1) {
-                nextPossibleState = state.end - chartStart;
+                nextPossibleState = (state.start + state.dur) - chartStart;
             }
         });
 
