@@ -7,6 +7,7 @@ import { getAllExpandedNodeIds } from './utils';
 import { SortConfig, sortNodes } from './sort';
 import ColumnHeader from './column-header';
 import { isEqual } from 'lodash';
+import { OutputDescriptor } from 'tsp-typescript-client';
 
 interface FilterTreeProps {
     nodes: TreeNode[];
@@ -24,6 +25,7 @@ interface FilterTreeProps {
     showHeader: boolean;
     headers: ColumnHeader[];
     className: string;
+    outputDescriptor?: OutputDescriptor
 }
 
 interface FilterTreeState {
@@ -270,6 +272,7 @@ export class FilterTree extends React.Component<FilterTreeProps, FilterTreeState
             showHeader={this.props.showHeader}
             headers={this.props.headers}
             className={this.props.className}
+            outputDescriptor={this.props.outputDescriptor}
         />;
 
     render(): JSX.Element | undefined {

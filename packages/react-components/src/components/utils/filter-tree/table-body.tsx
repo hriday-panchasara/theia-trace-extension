@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { TreeNode } from './tree-node';
 import { TableRow } from './table-row';
+import { OutputDescriptor } from 'tsp-typescript-client';
 
 interface TableBodyProps {
     nodes: TreeNode[];
@@ -13,6 +14,7 @@ interface TableBodyProps {
     onRowClick: (id: number) => void;
     onClose: (id: number) => void;
     onToggleCheck: (id: number) => void;
+    outputDescriptor?: OutputDescriptor
 }
 
 export class TableBody extends React.Component<TableBodyProps> {

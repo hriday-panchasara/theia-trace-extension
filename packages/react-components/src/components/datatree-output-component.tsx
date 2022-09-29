@@ -98,6 +98,7 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
                     onToggleCollapse={this.onToggleCollapse}
                     onOrderChange={this.onOrderChange}
                     headers={this.state.columns}
+                    outputDescriptor={this.props.outputDescriptor}
                 />
             </div>
             : undefined

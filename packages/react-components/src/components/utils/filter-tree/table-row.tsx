@@ -3,6 +3,8 @@ import { TreeNode } from './tree-node';
 import { TableCell } from './table-cell';
 import { CheckboxComponent } from './checkbox-component';
 import icons from './icons';
+import { signalManager } from 'traceviewer-base/lib/signals/signal-manager';
+import { OutputDescriptor } from 'tsp-typescript-client';
 
 interface TableRowProps {
     node: TreeNode;
@@ -16,6 +18,7 @@ interface TableRowProps {
     onClose: (id: number) => void;
     onToggleCheck: (id: number) => void;
     onRowClick: (id: number) => void;
+    outputDescriptor?: OutputDescriptor
 }
 
 export class TableRow extends React.Component<TableRowProps> {
@@ -93,13 +96,29 @@ export class TableRow extends React.Component<TableRowProps> {
         return undefined;
     };
 
-    render(): React.ReactNode | undefined {
+        render(): React.ReactNode | undefined {
         if (!this.props.node) { return undefined; }
         const children = this.renderChildren();
 
         return (
             <React.Fragment>
-                <tr>{this.renderRow()}</tr>
+                <tr onContextMenu={(e) => {
+                    e.preventDefault();
+                    console.log("context menu clicked");
+                    console.log(e.detail);
+                    console.log(e.button);
+                    console.log(e.clientX);
+                    console.log(e.clientY);
+                    console.log(this.props.node.labels[0]);
+                    signalManager().fireDatatreeOutputOpenContextMenu({
+                        xPos: e.clientX,
+                        yPos: e.clientY,
+                        nodeId: this.props.node.id,
+                        outputId: this.props.outputDescriptor?.id ?? ""
+                    })
+                }}>
+                    {this.renderRow()}
+                </tr>
                 {children}
             </React.Fragment>
         );

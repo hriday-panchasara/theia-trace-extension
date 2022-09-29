@@ -4,6 +4,7 @@ import { listToTree } from './utils';
 import { FilterTree } from './tree';
 import { TreeNode } from './tree-node';
 import ColumnHeader from './column-header';
+import { OutputDescriptor } from 'tsp-typescript-client';
 
 interface EntryTreeProps {
     entries: Entry[];
@@ -21,6 +22,7 @@ interface EntryTreeProps {
     showHeader: boolean;
     headers: ColumnHeader[];
     className: string;
+    outputDescriptor?: OutputDescriptor
 }
 
 export class EntryTree extends React.Component<EntryTreeProps> {
