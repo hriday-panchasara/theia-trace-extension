@@ -1,4 +1,4 @@
-import { Disposable, DisposableCollection, MessageService, Path } from '@theia/core';
+import { CommandService, Disposable, DisposableCollection, MessageService, Path } from '@theia/core';
 import { ApplicationShell, Message, StatusBar, WidgetManager, StatefulWidget } from '@theia/core/lib/browser';
 import { ReactWidget } from '@theia/core/lib/browser/widgets/react-widget';
 import { inject, injectable, postConstruct } from 'inversify';
@@ -21,6 +21,7 @@ import { BackendFileService } from '../../common/backend-file-service';
 import { CancellationTokenSource } from '@theia/core';
 import * as React from 'react';
 import 'animate.css';
+import { OpenDataTreeContextMenu } from './trace-viewer-commands';
 
 export const TraceViewerWidgetOptions = Symbol('TraceViewerWidgetOptions');
 export interface TraceViewerWidgetOptions {
@@ -69,6 +70,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     private onExperimentSelected = (experiment: Experiment): Promise<void> => this.doHandleExperimentSelectedSignal(experiment);
     private onCloseExperiment = (UUID: string): void => this.doHandleCloseExperimentSignal(UUID);
     private onMarkerCategoryClosedSignal = (payload: { traceViewerId: string, markerCategory: string }) => this.doHandleMarkerCategoryClosedSignal(payload);
+    private _doHandleShowContextMenu = (payload: { xPos: number, yPos: number, nodeId: number, outputId: string}): void => this.showContextMenu(payload);
 
     private overviewOutputDescriptor: OutputDescriptor | undefined;
     private prevOverviewOutputDescriptor: OutputDescriptor | undefined;
@@ -83,6 +85,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     @inject(TraceExplorerContribution) protected readonly traceExplorerContribution: TraceExplorerContribution;
     @inject(WidgetManager) protected readonly widgetManager!: WidgetManager;
     @inject(ThemeService) protected readonly themeService: ThemeService;
+    @inject(CommandService) protected readonly commandService!: CommandService;
 
     @postConstruct()
     async init(): Promise<void> {
@@ -144,6 +147,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
         signalManager().on(Signals.MARKER_CATEGORY_CLOSED, this.onMarkerCategoryClosedSignal);
         signalManager().on(Signals.OPEN_OVERVIEW_OUTPUT, this.onTraceOverviewOpened);
         signalManager().on(Signals.OVERVIEW_OUTPUT_SELECTED, this.onTraceOverviewOutputSelected);
+        signalManager().on(Signals.DATATREE_OUTPUT_OPEN_CONTEXT_MENU, this._doHandleShowContextMenu);
     }
 
     protected updateBackgroundTheme(): void {
@@ -158,6 +162,8 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
         signalManager().off(Signals.CLOSE_TRACEVIEWERTAB, this.onCloseExperiment);
         signalManager().off(Signals.OPEN_OVERVIEW_OUTPUT, this.onTraceOverviewOpened);
         signalManager().off(Signals.OVERVIEW_OUTPUT_SELECTED, this.onTraceOverviewOutputSelected);
+        signalManager().off(Signals.DATATREE_OUTPUT_OPEN_CONTEXT_MENU, this._doHandleShowContextMenu);
+
     }
 
     async initialize(): Promise<void> {
@@ -595,5 +601,9 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
             const overviewOutputDescriptors = descriptors?.filter(output => output.type === 'TREE_TIME_XY');
             return overviewOutputDescriptors;
         }
+    }
+
+    private showContextMenu(payload: { xPos: number, yPos: number, nodeId: number, outputId: string}): void {
+        this.commandService.executeCommand(OpenDataTreeContextMenu.id, payload);
     }
 }

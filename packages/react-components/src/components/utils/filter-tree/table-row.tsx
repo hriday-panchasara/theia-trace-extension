@@ -104,12 +104,6 @@ export class TableRow extends React.Component<TableRowProps> {
             <React.Fragment>
                 <tr onContextMenu={(e) => {
                     e.preventDefault();
-                    console.log("context menu clicked");
-                    console.log(e.detail);
-                    console.log(e.button);
-                    console.log(e.clientX);
-                    console.log(e.clientY);
-                    console.log(this.props.node.labels[0]);
                     signalManager().fireDatatreeOutputOpenContextMenu({
                         xPos: e.clientX,
                         yPos: e.clientY,
