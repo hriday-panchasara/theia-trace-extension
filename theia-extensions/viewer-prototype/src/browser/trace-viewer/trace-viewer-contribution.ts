@@ -1,11 +1,11 @@
 import { injectable, inject } from 'inversify';
-import { CommandRegistry, CommandContribution, MessageService, MenuModelRegistry, DisposableCollection } from '@theia/core';
+import { CommandRegistry, CommandContribution, MessageService } from '@theia/core';
 import { WidgetOpenerOptions, WidgetOpenHandler, KeybindingContribution, KeybindingRegistry } from '@theia/core/lib/browser';
 import URI from '@theia/core/lib/common/uri';
 import { TraceViewerWidget, TraceViewerWidgetOptions } from './trace-viewer';
 import { FileDialogService, OpenFileDialogProps } from '@theia/filesystem/lib/browser';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
-import { OpenTraceCommand, StartServerCommand, StopServerCommand, TraceViewerCommand, KeyboardShortcutsCommand, OpenTraceWithRootPathCommand, OpenDataTreeContextMenu, TraceContextComponentMenus } from './trace-viewer-commands';
+import { OpenTraceCommand, StartServerCommand, StopServerCommand, TraceViewerCommand, KeyboardShortcutsCommand, OpenTraceWithRootPathCommand } from './trace-viewer-commands';
 import { PortBusy, TraceServerConfigService } from '../../common/trace-server-config';
 import { TracePreferences, TRACE_PATH, TRACE_ARGS } from '../trace-server-preference';
 import { TspClient } from 'tsp-typescript-client/lib/protocol/tsp-client';
@@ -14,7 +14,6 @@ import { ChartShortcutsDialog } from './../trace-explorer/trace-explorer-sub-wid
 import { signalManager } from 'traceviewer-base/lib/signals/signal-manager';
 import { TraceServerConnectionStatusService } from '../trace-server-status';
 import { FileStat } from '@theia/filesystem/lib/common/files';
-import { ContextMenuRenderer } from '@theia/core/lib/browser';
 
 interface TraceViewerWidgetOpenerOptions extends WidgetOpenerOptions {
     traceUUID: string;
@@ -24,7 +23,6 @@ interface TraceViewerWidgetOpenerOptions extends WidgetOpenerOptions {
 export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget> implements CommandContribution, KeybindingContribution {
 
     private tspClient: TspClient;
-    private toDisposeOnHide: DisposableCollection;
 
     private constructor(
         @inject(TspClientProvider) private tspClientProvider: TspClientProvider
@@ -32,7 +30,6 @@ export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget
         super();
         this.tspClient = this.tspClientProvider.getTspClient();
         this.tspClientProvider.addTspClientChangeListener(tspClient => this.tspClient = tspClient);
-        this.toDisposeOnHide = new DisposableCollection();
     }
 
     @inject(FileDialogService) protected readonly fileDialogService: FileDialogService;
@@ -41,8 +38,6 @@ export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget
     @inject(TraceServerConfigService) protected readonly traceServerConfigService: TraceServerConfigService;
     @inject(MessageService) protected readonly messageService: MessageService;
     @inject(ChartShortcutsDialog) protected readonly chartShortcuts: ChartShortcutsDialog;
-    @inject(MenuModelRegistry) protected readonly menus: MenuModelRegistry;
-    @inject(ContextMenuRenderer) protected readonly contextMenuRenderer!: ContextMenuRenderer;
 
     readonly id = TraceViewerWidget.ID;
     readonly label = 'Trace Viewer';
@@ -243,58 +238,6 @@ export class TraceViewerContribution extends WidgetOpenHandler<TraceViewerWidget
         registry.registerCommand(KeyboardShortcutsCommand, {
             execute: () => {
                 this.chartShortcuts.open();
-            }
-        });
-        registry.registerCommand(OpenDataTreeContextMenu, {
-            execute: (payload: { xPos: number, yPos: number, nodeId: number, outputId: string}) => {
-                console.log("inside execute");
-                this.toDisposeOnHide.dispose();
-
-                const menuPath = TraceContextComponentMenus.DATATREE_OUTPUT_CONTEXT_MENU;
-
-                this.toDisposeOnHide.push(this.menus.registerMenuAction(menuPath, {
-                    label: 'Goto Minimum',
-                    commandId: 'Goto Minimum',
-                    order: '0',
-                }));
-                this.toDisposeOnHide.push(registry.registerCommand({
-                    id: 'Goto Minimum',
-                    label: 'Goto Minimum',
-                }, {
-                    execute: () => {
-                        // Send go to Minimum with the data that you have
-                    }
-                }));
-                
-                this.toDisposeOnHide.push(this.menus.registerMenuAction(menuPath, {
-                    label: 'Goto Maximum',
-                    commandId: 'Goto Maximum',
-                    order: '1',
-                }));
-                this.toDisposeOnHide.push(registry.registerCommand({
-                    id: 'Goto Maximum',
-                    label: 'Goto Maximum',
-                }, {
-                    execute: () => {
-                        // Send go to Maximum with the data that you have
-                    }
-                }));
-
-                if (this.contextMenuRenderer.current) {
-                    console.log('dispose current contextMenuRenderer');
-                    this.contextMenuRenderer.current.dispose();
-                }
-            
-                // might need to pass payload to args for goto min/max execute()'s above
-                return this.contextMenuRenderer.render({
-                    menuPath,
-                    args: [],
-                    anchor: { x: payload.xPos, y: payload.yPos },
-                    onHide: () => {
-                        setTimeout(() => this.toDisposeOnHide.dispose());
-                    }
-                });
-
             }
         });
     }

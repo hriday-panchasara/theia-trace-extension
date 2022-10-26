@@ -1,4 +1,4 @@
-import { Command, MenuPath } from '@theia/core';
+import { Command } from '@theia/core';
 
 export const OpenTraceCommand: Command = {
     id: 'open-trace',
@@ -29,12 +29,3 @@ export const OpenTraceWithRootPathCommand: Command = {
     id: 'open-trace-with-root-path',
     label: 'Open Trace With Root Path'
 };
-
-export const OpenDataTreeContextMenu: Command = {
-    id: 'open-data-tree-context-menu',
-    label: 'Open Data Tree Context Menu'
-}
-
-export namespace TraceContextComponentMenus {
-    export const DATATREE_OUTPUT_CONTEXT_MENU: MenuPath = ['trace-context-component-datatree-context-menu'];
-}

@@ -8,9 +8,11 @@ import { EntryTree } from './utils/filter-tree/entry-tree';
 import { getAllExpandedNodeIds } from './utils/filter-tree/utils';
 import { TreeNode } from './utils/filter-tree/tree-node';
 import ColumnHeader from './utils/filter-tree/column-header';
+import { signalManager, Signals } from 'traceviewer-base/lib/signals/signal-manager';
 import debounce from 'lodash.debounce';
 
 type DataTreeOutputProps = AbstractOutputProps & {
+    showContextMenu?: boolean;
 };
 
 type DataTreeOuputState = AbstractOutputState & {
@@ -19,12 +21,17 @@ type DataTreeOuputState = AbstractOutputState & {
     collapsedNodes: number[];
     orderedNodes: number[];
     columns: ColumnHeader[];
+    anchorX: number,
+    anchorY: number,
+    showContextMenu: boolean
 };
 
 export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOutputProps, DataTreeOuputState> {
     treeRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     private _debouncedFetchSelectionData = debounce(() => this.fetchSelectionData(), 500);
+
+    private _doHandleShowContextMenu = (payload: { xPos: number, yPos: number, nodeId: number, outputId: string}): void => this.showContextMenu(payload);
 
     constructor(props: AbstractOutputProps) {
         super(props);
@@ -36,12 +43,52 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
             orderedNodes: [],
             columns: [{title: 'Name', sortable: true}],
             optionsDropdownOpen: false,
-            additionalOptions: true
+            additionalOptions: true,
+            anchorX: 0,
+            anchorY: 0,
+            showContextMenu: false
         };
+
+        signalManager().on(Signals.DATATREE_OUTPUT_OPEN_CONTEXT_MENU, this._doHandleShowContextMenu);
+        this.closeContextMenu = this.closeContextMenu.bind(this);
     }
 
     componentDidMount(): void {
         this.waitAnalysisCompletion();
+    }
+
+    protected renderContextMenu(): React.ReactNode {
+        return <React.Fragment>
+            <div className='tr-custom-context-menu' style={{top: this.state.anchorY + "px", left: this.state.anchorX + "px"}}>
+                <ul>
+                    <li>First Option</li>
+                    <li>Second Option</li>
+                </ul>
+            </div>
+        </React.Fragment>;
+    }
+
+    private showContextMenu(payload: { xPos: number, yPos: number, nodeId: number, outputId: string}): void {
+        console.log('show Context menu called');
+        console.log(payload.outputId);
+        console.log(this.props.outputDescriptor?.id ?? "no props outputDescriptor");
+        if (payload.outputId === this.props.outputDescriptor?.id) {
+            console.log('set show');
+            this.setState({
+                anchorX: payload.xPos,
+                anchorY: payload.yPos,
+                showContextMenu: true
+            }, () => {
+                document.addEventListener('click', this.closeContextMenu);
+            });
+        }
+    }
+
+    private closeContextMenu(): void {
+        console.log('close Context menu called');
+        this.setState({showContextMenu: false}, () => {
+            document.removeEventListener('click', this.closeContextMenu);
+        });
     }
 
     async fetchTree(): Promise<ResponseStatus> {
@@ -108,11 +155,13 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
     renderMainArea(): React.ReactNode {
         return <React.Fragment>
             {this.state.outputStatus === ResponseStatus.COMPLETED ?
+                <>
+                {this.state.showContextMenu && this.renderContextMenu()}
                 <div ref={this.treeRef} className='output-component-tree disable-select'
                     style={{ height: this.props.style.height, width: this.props.outputWidth }}
                 >
                     {this.renderTree()}
-                </div> :
+                </div></>:
                 <div tabIndex={0} id={this.props.traceId + this.props.outputDescriptor.id + 'focusContainer'} className='analysis-running-main-area'>
                     <i className='fa fa-refresh fa-spin' style={{ marginRight: '5px' }} />
                     <span>Analysis running</span>
@@ -159,6 +208,7 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
     componentWillUnmount(): void {
         // fix Warning: Can't perform a React state update on an unmounted component
         this.setState = (_state, _callback) => undefined;
+        signalManager().off(Signals.DATATREE_OUTPUT_OPEN_CONTEXT_MENU, this._doHandleShowContextMenu);
     }
 
     protected async fetchSelectionData(): Promise<void> {

@@ -1,5 +1,5 @@
-import { CommandService, Disposable, DisposableCollection, MessageService, Path } from '@theia/core';
-import { ApplicationShell, Message, StatusBar, WidgetManager, StatefulWidget } from '@theia/core/lib/browser';
+import { CommandRegistry, CommandService, Disposable, DisposableCollection, MenuModelRegistry, MessageService, Path } from '@theia/core';
+import { ApplicationShell, Message, StatusBar, WidgetManager, StatefulWidget, ContextMenuRenderer } from '@theia/core/lib/browser';
 import { ReactWidget } from '@theia/core/lib/browser/widgets/react-widget';
 import { inject, injectable, postConstruct } from 'inversify';
 import { OutputDescriptor } from 'tsp-typescript-client/lib/models/output-descriptor';
@@ -21,7 +21,7 @@ import { BackendFileService } from '../../common/backend-file-service';
 import { CancellationTokenSource } from '@theia/core';
 import * as React from 'react';
 import 'animate.css';
-import { OpenDataTreeContextMenu } from './trace-viewer-commands';
+// import { OpenDataTreeContextMenu } from './trace-viewer-commands';
 
 export const TraceViewerWidgetOptions = Symbol('TraceViewerWidgetOptions');
 export interface TraceViewerWidgetOptions {
@@ -66,11 +66,11 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
 
     private onOutputAdded = (payload: OutputAddedSignalPayload): Promise<void> => this.doHandleOutputAddedSignal(payload);
     private onTraceOverviewOpened = (): Promise<void> => this.doHandleTraceOverviewOpenedSignal();
-    private onTraceOverviewOutputSelected = (payload: {traceId: string, outputDescriptor: OutputDescriptor}): Promise<void> => this.doHandleTraceOverviewOutputSelected(payload);
+    private onTraceOverviewOutputSelected = (payload: { traceId: string, outputDescriptor: OutputDescriptor }): Promise<void> => this.doHandleTraceOverviewOutputSelected(payload);
     private onExperimentSelected = (experiment: Experiment): Promise<void> => this.doHandleExperimentSelectedSignal(experiment);
     private onCloseExperiment = (UUID: string): void => this.doHandleCloseExperimentSignal(UUID);
     private onMarkerCategoryClosedSignal = (payload: { traceViewerId: string, markerCategory: string }) => this.doHandleMarkerCategoryClosedSignal(payload);
-    private _doHandleShowContextMenu = (payload: { xPos: number, yPos: number, nodeId: number, outputId: string}): void => this.showContextMenu(payload);
+    private _doHandleShowContextMenu = (payload: { xPos: number, yPos: number, nodeId: number, outputId: string }): void => this.showContextMenu(payload);
 
     private overviewOutputDescriptor: OutputDescriptor | undefined;
     private prevOverviewOutputDescriptor: OutputDescriptor | undefined;
@@ -86,6 +86,9 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     @inject(WidgetManager) protected readonly widgetManager!: WidgetManager;
     @inject(ThemeService) protected readonly themeService: ThemeService;
     @inject(CommandService) protected readonly commandService!: CommandService;
+    @inject(CommandRegistry) protected readonly commands: CommandRegistry;
+    @inject(MenuModelRegistry) protected readonly menus: MenuModelRegistry;
+    @inject(ContextMenuRenderer) protected readonly contextMenuRenderer!: ContextMenuRenderer;
 
     @postConstruct()
     async init(): Promise<void> {
@@ -132,7 +135,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
         this.node.tabIndex = 0;
 
         // Load the trace overview by default
-        if (this.loadTraceOverview){
+        if (this.loadTraceOverview) {
             this.doHandleTraceOverviewOpenedSignal();
         }
     }
@@ -171,11 +174,11 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
 
         // This will show a progress dialog with "Cancel" option
         this.messageService.showProgress({
-                text: 'Open traces',
-                options: {
-                    cancelable: true
-                }
-            },
+            text: 'Open traces',
+            options: {
+                cancelable: true
+            }
+        },
             () => {
                 cancellation.cancel();
             })
@@ -295,7 +298,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
                 this.outputDescriptors = persistedState.outputs;
             }
 
-            if (persistedState.storedOverviewOutput){
+            if (persistedState.storedOverviewOutput) {
                 this.overviewOutputDescriptor = persistedState.storedOverviewOutput;
             }
         }
@@ -373,7 +376,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
             const exist = this.outputDescriptors.find(output => output.id === payload.getOutputDescriptor().id);
             if (!exist) {
                 const output = payload.getOutputDescriptor();
-                this.outputDescriptors =  this.outputDescriptors.concat(output);
+                this.outputDescriptors = this.outputDescriptors.concat(output);
                 await this.fetchAnnotationCategories(output);
                 this.update();
             } else {
@@ -391,7 +394,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
                         event.stopPropagation();
                         titleHandle?.classList.remove('animate__animated', 'animate__pulse');
                         resolve('Animation ended');
-                    }, {once: true});
+                    }, { once: true });
                 });
             }
         }
@@ -413,7 +416,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     protected async doHandleExperimentSelectedSignal(experiment: Experiment): Promise<void> {
         if (this.openedExperiment && this.openedExperiment.UUID === experiment.UUID) {
             // Update the trace UUID so that the overview can be opened
-            if (this.loadTraceOverview){
+            if (this.loadTraceOverview) {
                 const defaultOutputDescriptor = await this.getDefaultTraceOverviewOutputDescriptor();
                 this.updateOverviewOutputDescriptor(defaultOutputDescriptor);
             }
@@ -431,16 +434,16 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     }
 
     private async doHandleTraceOverviewOpenedSignal(): Promise<void> {
-        if (this.openedExperiment){
+        if (this.openedExperiment) {
             this.loadOverviewOutputDescriptor();
             this.shell.activateWidget(this.openedExperiment.UUID);
         }
     }
 
-    private async doHandleTraceOverviewOutputSelected(payload: {traceId: string, outputDescriptor: OutputDescriptor}): Promise<void> {
-        if (this.openedExperiment && payload && payload.traceId === this.openedExperiment.UUID && payload.outputDescriptor){
-                await this.updateOverviewOutputDescriptor(payload.outputDescriptor);
-                this.shell.activateWidget(this.openedExperiment.UUID);
+    private async doHandleTraceOverviewOutputSelected(payload: { traceId: string, outputDescriptor: OutputDescriptor }): Promise<void> {
+        if (this.openedExperiment && payload && payload.traceId === this.openedExperiment.UUID && payload.outputDescriptor) {
+            await this.updateOverviewOutputDescriptor(payload.outputDescriptor);
+            this.shell.activateWidget(this.openedExperiment.UUID);
         }
     }
 
@@ -566,7 +569,7 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
     }
 
     isTraceOverviewOpened(): boolean {
-        if (this.overviewOutputDescriptor){
+        if (this.overviewOutputDescriptor) {
             return true;
         }
 
@@ -596,14 +599,80 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
      * Get the output descriptor for the trace over view
      */
     protected async getAvailableTraceOverviewOutputDescriptor(): Promise<OutputDescriptor[] | undefined> {
-        if (this.openedExperiment){
+        if (this.openedExperiment) {
             const descriptors = await this.experimentManager.getAvailableOutputs(this.openedExperiment.UUID);
             const overviewOutputDescriptors = descriptors?.filter(output => output.type === 'TREE_TIME_XY');
             return overviewOutputDescriptors;
         }
     }
 
-    private showContextMenu(payload: { xPos: number, yPos: number, nodeId: number, outputId: string}): void {
-        this.commandService.executeCommand(OpenDataTreeContextMenu.id, payload);
+    private showContextMenu(payload: { xPos: number, yPos: number, nodeId: number, outputId: string }): void {
+        //console.log("not doing anything");
+        
+        /*
+        console.log("inside showContextMenu");
+
+        const customContextMenu: Command = {
+            id: 'open-data-tree-context-menu-custom',
+            label: 'Open Data Tree Context Menu Custom'
+        }
+
+        const toDisposeOnHide: DisposableCollection = new DisposableCollection();
+
+        this.commands.registerCommand(customContextMenu, {
+            execute: (payload: { xPos: number, yPos: number, nodeId: number, outputId: string }) => {
+                console.log("inside execute");
+                toDisposeOnHide.dispose();
+
+                const menuPath: string[] = ['trace-context-component-datatree-context-menu'];
+
+                toDisposeOnHide.push(this.menus.registerMenuAction(menuPath, {
+                    label: 'Goto Minimum',
+                    commandId: 'Goto Minimum',
+                    order: '0',
+                }));
+                toDisposeOnHide.push(this.commands.registerCommand({
+                    id: 'Goto Minimum',
+                    label: 'Goto Minimum',
+                }, {
+                    execute: () => {
+                        // Send go to Minimum with the data that you have
+                    }
+                }));
+
+                toDisposeOnHide.push(this.menus.registerMenuAction(menuPath, {
+                    label: 'Goto Maximum',
+                    commandId: 'Goto Maximum',
+                    order: '1',
+                }));
+                toDisposeOnHide.push(this.commands.registerCommand({
+                    id: 'Goto Maximum',
+                    label: 'Goto Maximum',
+                }, {
+                    execute: () => {
+                        // Send go to Maximum with the data that you have
+                    }
+                }));
+
+                if (this.contextMenuRenderer.current) {
+                    console.log('dispose current contextMenuRenderer');
+                    this.contextMenuRenderer.current.dispose();
+                }
+
+                // might need to pass payload to args for goto min/max execute()'s above
+                return this.contextMenuRenderer.render({
+                    menuPath,
+                    args: [],
+                    anchor: { x: payload.xPos, y: payload.yPos },
+                    onHide: () => {
+                        setTimeout(() => toDisposeOnHide.dispose());
+                    }
+                });
+
+            }
+        });
+
+        this.commandService.executeCommand(customContextMenu.id, payload);
+        */
     }
 }
