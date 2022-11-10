@@ -10,6 +10,8 @@ import { TreeNode } from './utils/filter-tree/tree-node';
 import ColumnHeader from './utils/filter-tree/column-header';
 import { signalManager, Signals } from 'traceviewer-base/lib/signals/signal-manager';
 import debounce from 'lodash.debounce';
+import { ControlledMenu, MenuItem } from '@szhsin/react-menu';
+import '@szhsin/react-menu/dist/index.css';
 
 type DataTreeOutputProps = AbstractOutputProps & {
     showContextMenu?: boolean;
@@ -55,17 +57,6 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
 
     componentDidMount(): void {
         this.waitAnalysisCompletion();
-    }
-
-    protected renderContextMenu(): React.ReactNode {
-        return <React.Fragment>
-            <div className='tr-custom-context-menu' style={{top: this.state.anchorY + "px", left: this.state.anchorX + "px"}}>
-                <ul>
-                    <li>First Option</li>
-                    <li>Second Option</li>
-                </ul>
-            </div>
-        </React.Fragment>;
     }
 
     private showContextMenu(payload: { xPos: number, yPos: number, nodeId: number, outputId: string}): void {
@@ -156,7 +147,22 @@ export class DataTreeOutputComponent extends AbstractOutputComponent<AbstractOut
         return <React.Fragment>
             {this.state.outputStatus === ResponseStatus.COMPLETED ?
                 <>
-                {this.state.showContextMenu && this.renderContextMenu()}
+                <ControlledMenu
+                    state={this.state.showContextMenu ? 'open' : 'closed'}
+                    onClose={() => this.setState({showContextMenu: true})}
+                    anchorPoint={{x: this.state.anchorX, y: this.state.anchorY}}
+                >
+                    <MenuItem
+                        value="GotoMin"
+                        onClick={(e) => {
+                            e.stopPropagation = true;
+                            console.log('GotoMin clicked')
+                        }} 
+                    >
+                        Go to minimum
+                    </MenuItem>
+                    <MenuItem>Go to maximum</MenuItem>
+                </ControlledMenu>
                 <div ref={this.treeRef} className='output-component-tree disable-select'
                     style={{ height: this.props.style.height, width: this.props.outputWidth }}
                 >
