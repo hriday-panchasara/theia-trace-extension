@@ -29,6 +29,10 @@ import { TimeGraphAnnotationComponent } from 'timeline-chart/lib/components/time
 import { Entry } from 'tsp-typescript-client';
 import { isEqual } from 'lodash';
 import { convertColorStringToHexNumber } from 'traceviewer-base/lib/utils/convert-color-string-to-hex';
+import TextField from '@mui/material/TextField';
+//import ManageSearchIcon from '@mui/icons-material/ManageSearch';
+import InputAdornment from '@mui/material/InputAdornment';
+import Chip from '@mui/material/Chip';
 
 type TimegraphOutputProps = AbstractOutputProps & {
     addWidgetResizeHandler: (handler: () => void) => void;
@@ -237,6 +241,7 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
     }
 
     async componentDidUpdate(prevProps: TimegraphOutputProps, prevState: TimegraphOutputState): Promise<void> {
+        console.log("timegraph-output-component componentDidUpdate called");
         if (prevState.outputStatus === ResponseStatus.RUNNING ||
             !isEqual(this.state.collapsedNodes, prevState.collapsedNodes) ||
             !isEqual(prevProps.markerCategories, this.props.markerCategories) ||
@@ -384,7 +389,7 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
         // TODO Show header, when we can have entries in-line with timeline-chart
         return <>
             <div ref={this.timeGraphTreeRef} className='scrollable' onScroll={() => this.synchronizeTreeScroll()}
-                style={{ height: parseInt(this.props.style.height.toString()) - this.getMarkersLayerHeight() }}
+                style={{ height: parseInt(this.props.style.height.toString()) - this.getMarkersLayerHeight() - 60}}
                 tabIndex={0}
                 >
                 <EntryTree
@@ -504,6 +509,41 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
         return <div id='main-timegraph-content' ref={this.horizontalContainer} style={{ height: this.props.style.height }} >
             {this.getChartContainer()}
             {this.getMarkersContainer()}
+            <div className='timgraph-search-bar' style={{backgroundColor: 'white', marginBottom: '0px', height: '60px'}}>
+                <Chip 
+                    label="wget"
+                    color="primary"
+                    size="small"
+                    onDelete={()=>{}}
+                />
+                <Chip 
+                    label="TID == 5755"
+                    color="primary"
+                    size="small"
+                    onDelete={()=>{}}
+                />
+                <TextField
+                    id="outlined-search"
+                    InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <i className='codicon codicon-search'></i>
+                          </InputAdornment>
+                        ),
+                        style: {
+                            height: "24px",
+                            borderRadius: "15px"
+                        },
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <i className='codicon codicon-close'></i>
+                            </InputAdornment>
+                        )
+                      }}
+                    //value={name}
+                    //onChange={handleChange}
+                />
+            </div>
         </div>;
     }
 
@@ -535,7 +575,7 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
             options={
                 {
                     id: this.props.traceId + this.props.outputDescriptor.id + 'focusContainer',
-                    height: parseInt(this.props.style.height.toString()) - this.getMarkersLayerHeight(),
+                    height: parseInt(this.props.style.height.toString()) - this.getMarkersLayerHeight() - 60,
                     width: this.getChartWidth(),
                     backgroundColor: this.props.style.chartBackgroundColor,
                     lineColor: this.props.backgroundTheme === 'light' ? 0xdddddd : 0x34383C,
@@ -953,6 +993,7 @@ export class TimegraphOutputComponent extends AbstractTreeOutputComponent<Timegr
             // This highlights the left side if the row is loading.
             this.setState({ selectedRow: id });
         }
+        console.log("onRowClick called");
     };
 
     public onSelectionChange = (row: TimelineChart.TimeGraphRowModel): void => {
