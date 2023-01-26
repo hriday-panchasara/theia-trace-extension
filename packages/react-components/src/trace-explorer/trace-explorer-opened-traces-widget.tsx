@@ -102,7 +102,6 @@ export class ReactOpenTracesWidget extends React.Component<ReactOpenTracesWidget
     }
 
     protected doHandleContextMenuEvent(event: React.MouseEvent<HTMLDivElement>, traceUUID: string): void {
-        this.doHandleOnExperimentSelected(event);
         const experiment = this.getExperiment(traceUUID);
         if (experiment !== undefined && this.props.contextMenuRenderer) {
             this.props.contextMenuRenderer(event, experiment);
