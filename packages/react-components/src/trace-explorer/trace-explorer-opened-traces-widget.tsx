@@ -137,7 +137,9 @@ export class ReactOpenTracesWidget extends React.Component<ReactOpenTracesWidget
                 </ReactModal>
                 <div className='trace-explorer-opened'>
                     <div className='trace-explorer-panel-content'
-                        onClick={this.updateOpenedExperiments}>
+                        onClick={this.updateOpenedExperiments}
+                        style={{height: totalHeight}}
+                    >
                         <AutoSizer>
                             {({ width }) =>
                                 <List
