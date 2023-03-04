@@ -18,14 +18,14 @@ export declare interface SignalManager {
     fireSelectionChangedSignal(payload: { [key: string]: string }): void;
     fireCloseTraceViewerTabSignal(traceUUID: string): void;
     fireTraceViewerTabActivatedSignal(experiment: Experiment): void;
-    fireUpdateZoomSignal(hasZoomedIn: boolean): void;
-    fireResetZoomSignal(): void;
+    fireUpdateZoomSignal(hasZoomedIn: boolean, traceId: string): void;
+    fireResetZoomSignal(traceId: string): void;
     fireMarkerCategoriesFetchedSignal(): void;
     fireMarkerSetsFetchedSignal(): void;
     fireMarkerCategoryClosedSignal(payload: { traceViewerId: string, markerCategory: string }): void;
     fireTraceServerStartedSignal(): void;
-    fireUndoSignal(): void;
-    fireRedoSignal(): void;
+    fireUndoSignal(traceId: string): void;
+    fireRedoSignal(traceId: string): void;
     fireOpenOverviewOutputSignal(traceId: string): void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     firePinView(output: OutputDescriptor, payload?: any): void;
@@ -103,11 +103,11 @@ export class SignalManager extends EventEmitter implements SignalManager {
     fireTraceViewerTabActivatedSignal(experiment: Experiment): void {
         this.emit(Signals.TRACEVIEWERTAB_ACTIVATED, experiment);
     }
-    fireUpdateZoomSignal(hasZoomedIn: boolean): void {
-        this.emit(Signals.UPDATE_ZOOM, hasZoomedIn);
+    fireUpdateZoomSignal(hasZoomedIn: boolean, traceId: string): void {
+        this.emit(Signals.UPDATE_ZOOM, hasZoomedIn, traceId);
     }
-    fireResetZoomSignal(): void {
-        this.emit(Signals.RESET_ZOOM);
+    fireResetZoomSignal(traceId: string): void {
+        this.emit(Signals.RESET_ZOOM, traceId);
     }
     fireMarkerCategoriesFetchedSignal(): void {
         this.emit(Signals.MARKER_CATEGORIES_FETCHED);
@@ -121,11 +121,11 @@ export class SignalManager extends EventEmitter implements SignalManager {
     fireTraceServerStartedSignal(): void {
         this.emit(Signals.TRACE_SERVER_STARTED);
     }
-    fireUndoSignal(): void {
-        this.emit(Signals.UNDO);
+    fireUndoSignal(traceId: string): void {
+        this.emit(Signals.UNDO, traceId);
     }
-    fireRedoSignal(): void {
-        this.emit(Signals.REDO);
+    fireRedoSignal(traceId: string): void {
+        this.emit(Signals.REDO, traceId);
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
     firePinView(output: OutputDescriptor, payload?: any): void {

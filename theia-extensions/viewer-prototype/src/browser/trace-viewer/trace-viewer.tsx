@@ -575,6 +575,30 @@ export class TraceViewerWidget extends ReactWidget implements StatefulWidget {
         }
     }
 
+    updateZoom(hasZoomedIn: boolean): void {
+        if (this.openedExperiment?.UUID) {
+            signalManager().fireUpdateZoomSignal(hasZoomedIn, this.openedExperiment.UUID);
+        }
+    }
+
+    resetZoom(): void {
+        if (this.openedExperiment?.UUID) {
+            signalManager().fireResetZoomSignal(this.openedExperiment.UUID);
+        }
+    }
+
+    performUndo(): void {
+        if (this.openedExperiment?.UUID) {
+            signalManager().fireUndoSignal(this.openedExperiment.UUID);
+        }
+    }
+
+    performRedo(): void {
+        if (this.openedExperiment?.UUID) {
+            signalManager().fireRedoSignal(this.openedExperiment.UUID);
+        }
+    }
+
     private async loadOverviewOutputDescriptor(): Promise<void> {
         let selectedOutput: OutputDescriptor | undefined;
         if (this.prevOverviewOutputDescriptor) {

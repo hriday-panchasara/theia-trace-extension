@@ -115,8 +115,8 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
     };
 
     private onBackgroundThemeChange = (theme: string): void => this.doHandleBackgroundThemeChange(theme);
-    private onUpdateZoom = (hasZoomedIn: boolean) => this.doHandleUpdateZoomSignal(hasZoomedIn);
-    private onResetZoom = () => this.doHandleResetZoomSignal();
+    private onUpdateZoom = (hasZoomedIn: boolean, traceId: string) => this.doHandleUpdateZoomSignal(hasZoomedIn, traceId);
+    private onResetZoom = (traceId: string) => this.doHandleResetZoomSignal(traceId);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private onPinView = (output: OutputDescriptor, payload?: any) => this.doHandlePinView(output, payload);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -333,12 +333,16 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         }
     }
 
-    private doHandleUpdateZoomSignal(hasZoomedIn: boolean) {
-        this.zoomButton(hasZoomedIn);
+    private doHandleUpdateZoomSignal(hasZoomedIn: boolean, traceId: string) {
+        if (this.state.experiment.UUID === traceId) {
+            this.zoomButton(hasZoomedIn);
+        }
     }
 
-    private doHandleResetZoomSignal() {
-        this.unitController.viewRange = { start: BigInt(0), end: this.unitController.absoluteRange };
+    private doHandleResetZoomSignal(traceId: string) {
+        if (this.state.experiment.UUID === traceId) {
+            this.unitController.viewRange = { start: BigInt(0), end: this.unitController.absoluteRange };
+        }
     }
 
     private zoomButton(zoomIn: boolean) {
@@ -446,17 +450,17 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         if (event.ctrlKey) {
             switch (event.key) {
                 case 'z': {
-                    this.undoHistory();
+                    this.undoHistory(this.state.experiment.UUID);
                     break;
                 }
                 case 'Z': {
                     if (event.shiftKey) {
-                        this.redoHistory();
+                        this.redoHistory(this.state.experiment.UUID);
                         break;
                     }
                 }
                 case 'y': {
-                    this.redoHistory();
+                    this.redoHistory(this.state.experiment.UUID);
                     break;
                 }
             }
@@ -650,12 +654,16 @@ export class TraceContextComponent extends React.Component<TraceContextProps, Tr
         </div>;
     }
 
-    private undoHistory = (): void => {
-        this.historyHandler.undo();
+    private undoHistory = (traceId: string): void => {
+        if (this.state.experiment.UUID === traceId) {
+            this.historyHandler.undo();
+        }
     };
 
-    private redoHistory = (): void => {
-        this.historyHandler.redo();
+    private redoHistory = (traceId: string): void => {
+        if (this.state.experiment.UUID === traceId) {
+            this.historyHandler.redo();
+        }
     };
 
     private updateHistory = (): void => {

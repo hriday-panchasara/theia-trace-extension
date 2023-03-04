@@ -65,8 +65,10 @@ export class TraceViewerToolbarContribution implements TabBarToolbarContribution
                 }
                 return false;
             },
-            execute: () => {
-                signalManager().fireUpdateZoomSignal(true);
+            execute: (widget: Widget) => {
+                if (widget instanceof TraceViewerWidget) {
+                    widget.updateZoom(true);
+                }
             }
         });
         registry.registerCommand(
@@ -78,8 +80,10 @@ export class TraceViewerToolbarContribution implements TabBarToolbarContribution
                 }
                 return false;
             },
-            execute: () => {
-                signalManager().fireUpdateZoomSignal(false);
+            execute: (widget: Widget) => {
+                if (widget instanceof TraceViewerWidget) {
+                    widget.updateZoom(false);
+                }
             }
         });
         registry.registerCommand(
@@ -90,8 +94,10 @@ export class TraceViewerToolbarContribution implements TabBarToolbarContribution
                 }
                 return false;
             },
-            execute: () => {
-                signalManager().fireUndoSignal();
+            execute: (widget: Widget) => {
+                if (widget instanceof TraceViewerWidget) {
+                    widget.performUndo();
+                }
             }
         });
         registry.registerCommand(
@@ -102,8 +108,10 @@ export class TraceViewerToolbarContribution implements TabBarToolbarContribution
                 }
                 return false;
             },
-            execute: () => {
-                signalManager().fireRedoSignal();
+            execute: (widget: Widget) => {
+                if (widget instanceof TraceViewerWidget) {
+                    widget.performRedo();
+                }
             }
         });
         registry.registerCommand(
@@ -114,8 +122,10 @@ export class TraceViewerToolbarContribution implements TabBarToolbarContribution
                 }
                 return false;
             },
-            execute: () => {
-                signalManager().fireResetZoomSignal();
+            execute: (widget: Widget) => {
+                if (widget instanceof TraceViewerWidget) {
+                    widget.resetZoom();
+                }
             }
         });
         registry.registerCommand(
