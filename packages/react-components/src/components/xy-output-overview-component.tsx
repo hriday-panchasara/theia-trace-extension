@@ -288,7 +288,7 @@ export class XYOutputOverviewComponent extends AbstractXYOutputComponent<XYOutpu
     }
 
     private onRightButtonClick(event: React.MouseEvent): void {
-        this.setState({ cursor: 'crosshair' });
+        this.setState({ cursor: 'col-resize' });
         this.startPositionMouseRightClick = this.getTimeForX(event.nativeEvent.offsetX);
     }
 
