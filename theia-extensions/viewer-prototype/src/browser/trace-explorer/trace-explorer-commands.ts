@@ -4,13 +4,9 @@ export namespace TraceExplorerMenus {
     export const PREFERENCE_EDITOR_CONTEXT_MENU: MenuPath = ['trace-explorer-opened-traces-context-menu'];
 }
 export namespace TraceExplorerCommands {
-    export const OPEN_TRACE: Command = {
-        id: 'trace-explorer:open-trace',
-    };
-
     export const CLOSE_TRACE: Command = {
         id: 'trace-explorer:close-trace',
-        label: 'Close Trace'
+        label: 'Close Trace Tab'
     };
 
     export const REMOVE_TRACE: Command = {

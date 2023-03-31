@@ -25,33 +25,21 @@ export class TraceExplorerContribution extends AbstractViewContribution<TraceExp
     registerMenus(menus: MenuModelRegistry): void {
         super.registerMenus(menus);
         menus.registerMenuAction(TraceExplorerMenus.PREFERENCE_EDITOR_CONTEXT_MENU, {
-            commandId: TraceExplorerCommands.OPEN_TRACE.id,
-            label: 'Open Trace',
-            order: 'a'
-        });
-
-        menus.registerMenuAction(TraceExplorerMenus.PREFERENCE_EDITOR_CONTEXT_MENU, {
             commandId: TraceExplorerCommands.CLOSE_TRACE.id,
             label: TraceExplorerCommands.CLOSE_TRACE.label,
-            order: 'b'
+            order: 'a'
         });
 
         menus.registerMenuAction(TraceExplorerMenus.PREFERENCE_EDITOR_CONTEXT_MENU, {
             commandId: TraceExplorerCommands.REMOVE_TRACE.id,
             label: TraceExplorerCommands.REMOVE_TRACE.label,
-            order: 'c'
+            order: 'b'
         });
     }
 
     async registerCommands(registry: CommandRegistry): Promise<void> {
         super.registerCommands(registry);
         const explorerWidget = await this.widget;
-
-        registry.registerCommand(TraceExplorerCommands.OPEN_TRACE, {
-            execute: (traceUUID: string) => {
-                explorerWidget.openExperiment(traceUUID);
-            }
-        });
 
         registry.registerCommand(TraceExplorerCommands.CLOSE_TRACE, {
             execute: (traceUUID: string) => {
