@@ -3,7 +3,8 @@
 }
 
 #trace-explorer-views-widget,
-#trace-explorer-opened-traces-widget {
+#trace-explorer-opened-traces-widget,
+#trace-explorer-item-properties-widget {
     height: 100%;
 }
 

@@ -62,9 +62,9 @@ export class ReactItemPropertiesWidget extends React.Component<ReactPropertiesWi
         }
 
         return (
-            <React.Fragment>
+            <div style={{whiteSpace: 'normal', paddingBottom: '12px'}}>
                 {tooltipArray.map(element => element)}
-            </React.Fragment>);
+            </div>);
     }
 
     /** Tooltip Signal and Signal Handlers */
